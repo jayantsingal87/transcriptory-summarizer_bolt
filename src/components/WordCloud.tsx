@@ -31,7 +31,7 @@ export function WordCloud({ data, width = 500, height = 300 }: WordCloudProps) {
     layout.start();
 
     function draw(words: any[]) {
-      const colorScale = scaleOrdinal(schemeCategory10);
+      const colorScale = scaleOrdinal<string>(schemeCategory10);
       
       d3.select(svgRef.current)
         .attr("width", layout.size()[0])
