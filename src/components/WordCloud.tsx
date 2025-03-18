@@ -1,6 +1,8 @@
 
 import { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
+import { scaleOrdinal } from 'd3-scale';
+import { schemeCategory10 } from 'd3-scale-chromatic';
 import cloud from 'd3-cloud';
 
 interface WordCloudProps {
@@ -29,7 +31,7 @@ export function WordCloud({ data, width = 500, height = 300 }: WordCloudProps) {
     layout.start();
 
     function draw(words: any[]) {
-      const colorScale = d3.scaleOrdinal(d3.schemeCategory10 as readonly string[]);
+      const colorScale = scaleOrdinal(schemeCategory10);
       
       d3.select(svgRef.current)
         .attr("width", layout.size()[0])

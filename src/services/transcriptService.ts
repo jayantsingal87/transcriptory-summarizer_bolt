@@ -1,3 +1,4 @@
+
 import { ExportOptions, ProcessingOptions, TranscriptResult } from "@/types/transcript";
 import { saveAs } from "file-saver";
 import { jsPDF } from "jspdf";
@@ -289,7 +290,8 @@ function exportToPdf(result: TranscriptResult, options: ExportOptions): Promise<
     // Key Points
     if (options.includeKeyPoints) {
       // Get the last auto table's final position
-      let y = doc.previousAutoTable?.finalY ?? (options.includeTopics ? 160 : 40);
+      // @ts-ignore - previousAutoTable is added by the autoTable plugin but not in the type definition
+      let y = (doc as any).previousAutoTable?.finalY ?? (options.includeTopics ? 160 : 40);
       y += 10;
       
       doc.setFontSize(14);
