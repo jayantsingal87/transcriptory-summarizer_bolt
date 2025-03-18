@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { extractVideoId } from "@/utils/youtube";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Check, ChevronDown, Globe, MessageSquare, Settings } from "lucide-react";
+import { Check, ChevronDown, Globe, MessageSquare, Settings, FileText } from "lucide-react";
 import { ProcessingOptions } from "@/types/transcript";
 import { 
   Command,
@@ -21,16 +21,16 @@ import { Label } from "@/components/ui/label";
 
 const languages = [
   { value: "", label: "Original" },
-  { value: "en", label: "English" },
-  { value: "es", label: "Spanish" },
-  { value: "fr", label: "French" },
-  { value: "de", label: "German" },
-  { value: "it", label: "Italian" },
-  { value: "pt", label: "Portuguese" },
-  { value: "ru", label: "Russian" },
-  { value: "zh", label: "Chinese" },
-  { value: "ja", label: "Japanese" },
-  { value: "ko", label: "Korean" },
+  { value: "English", label: "English" },
+  { value: "Spanish", label: "Spanish" },
+  { value: "French", label: "French" },
+  { value: "German", label: "German" },
+  { value: "Italian", label: "Italian" },
+  { value: "Portuguese", label: "Portuguese" },
+  { value: "Russian", label: "Russian" },
+  { value: "Chinese", label: "Chinese" },
+  { value: "Japanese", label: "Japanese" },
+  { value: "Korean", label: "Korean" },
 ];
 
 interface URLInputProps {
@@ -47,6 +47,7 @@ export function URLInput({ onSubmit, isLoading }: URLInputProps) {
   const [languageOpen, setLanguageOpen] = useState(false);
   const [generateWordCloud, setGenerateWordCloud] = useState(false);
   const [estimateCost, setEstimateCost] = useState(false);
+  const [showRawTranscript, setShowRawTranscript] = useState(false);
   const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -69,10 +70,16 @@ export function URLInput({ onSubmit, isLoading }: URLInputProps) {
       customPrompt: customPrompt || undefined,
       translateTo: translateTo || undefined,
       generateWordCloud,
-      estimateCostOnly: estimateCost
+      estimateCostOnly: estimateCost,
+      showRawTranscript
     };
     
     onSubmit(videoId, options);
+  };
+
+  // Function for quick example URLs
+  const setExampleUrl = (exampleUrl: string) => {
+    setUrl(exampleUrl);
   };
 
   return (
@@ -88,6 +95,36 @@ export function URLInput({ onSubmit, isLoading }: URLInputProps) {
               className="w-full bg-white/80 dark:bg-gray-900/80 transition-all"
               required
             />
+            <div className="flex flex-wrap gap-2 text-xs">
+              <span className="text-muted-foreground">Examples:</span>
+              <Button 
+                type="button" 
+                variant="link" 
+                size="sm" 
+                className="h-auto p-0 text-xs"
+                onClick={() => setExampleUrl("https://www.youtube.com/watch?v=dQw4w9WgXcQ")}
+              >
+                Rick Astley
+              </Button>
+              <Button 
+                type="button" 
+                variant="link" 
+                size="sm" 
+                className="h-auto p-0 text-xs"
+                onClick={() => setExampleUrl("https://www.youtube.com/watch?v=hLS3-RiokIw")}
+              >
+                AI Explained
+              </Button>
+              <Button 
+                type="button" 
+                variant="link" 
+                size="sm" 
+                className="h-auto p-0 text-xs"
+                onClick={() => setExampleUrl("https://www.youtube.com/watch?v=OJ8isyS9dGQ")}
+              >
+                Ted Talk
+              </Button>
+            </div>
           </div>
           
           <div className="flex flex-wrap gap-2">
@@ -213,6 +250,17 @@ export function URLInput({ onSubmit, isLoading }: URLInputProps) {
                   onCheckedChange={setGenerateWordCloud}
                 />
                 <Label htmlFor="wordCloud">Generate Word Cloud</Label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="showRawTranscript"
+                  checked={showRawTranscript}
+                  onCheckedChange={setShowRawTranscript}
+                />
+                <Label htmlFor="showRawTranscript" className="flex items-center gap-1">
+                  <FileText className="h-4 w-4" /> Show Raw Transcript
+                </Label>
               </div>
             </div>
           )}

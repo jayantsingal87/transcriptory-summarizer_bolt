@@ -39,6 +39,7 @@ export interface TranscriptResult {
     value: number;
   }[];
   confidenceScore?: number;
+  rawTranscript?: TranscriptSegment[];
 }
 
 export interface ProcessingOptions {
@@ -47,6 +48,7 @@ export interface ProcessingOptions {
   translateTo?: string;
   generateWordCloud?: boolean;
   estimateCostOnly?: boolean;
+  showRawTranscript?: boolean;
 }
 
 export interface ExportOptions {

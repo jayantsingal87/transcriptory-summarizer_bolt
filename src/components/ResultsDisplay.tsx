@@ -7,7 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { 
   Copy, Download, FileText, Mail, Share2, List, ListChecks, 
   BarChart3, Clock, ArrowDown, Book, FileCode, FileSpreadsheet, 
-  FileText as FileTextIcon, CheckSquare, Globe
+  FileText as FileTextIcon, CheckSquare, Globe, FileTerminal
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Progress } from "@/components/ui/progress";
@@ -37,6 +37,9 @@ export function ResultsDisplay({ result, videoId, onExport, isCostEstimate = fal
   });
 
   if (!result) return null;
+
+  // Determine if we should show the raw transcript tab
+  const showRawTranscriptTab = result.rawTranscript && result.rawTranscript.length > 0;
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -296,7 +299,7 @@ export function ResultsDisplay({ result, videoId, onExport, isCostEstimate = fal
         )}
 
         <Tabs defaultValue="summary" value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-5 mb-6">
+          <TabsList className={`grid ${showRawTranscriptTab ? 'grid-cols-6' : 'grid-cols-5'} mb-6`}>
             <TabsTrigger value="summary">
               <Book className="h-4 w-4 mr-2 hidden sm:inline-block" />
               Summary
@@ -317,6 +320,12 @@ export function ResultsDisplay({ result, videoId, onExport, isCostEstimate = fal
               <Clock className="h-4 w-4 mr-2 hidden sm:inline-block" />
               Transcript
             </TabsTrigger>
+            {showRawTranscriptTab && (
+              <TabsTrigger value="raw-transcript">
+                <FileTerminal className="h-4 w-4 mr-2 hidden sm:inline-block" />
+                Raw
+              </TabsTrigger>
+            )}
           </TabsList>
           
           <TabsContent value="summary" className="animate-slide-up">
@@ -499,6 +508,39 @@ export function ResultsDisplay({ result, videoId, onExport, isCostEstimate = fal
               </CardContent>
             </Card>
           </TabsContent>
+          
+          {showRawTranscriptTab && (
+            <TabsContent value="raw-transcript" className="animate-slide-up">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex justify-between">
+                    <span>Raw Transcript</span>
+                    <Button variant="ghost" size="icon" onClick={() => handleCopy(result.rawTranscript?.map(t => `[${t.timestamp}] ${t.text}`).join('\n') || '')}>
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {result.rawTranscript && result.rawTranscript.length > 0 ? (
+                    <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+                      {result.rawTranscript.map((segment, index) => (
+                        <div key={index} className="flex">
+                          <div className="text-sm font-medium text-muted-foreground w-16 shrink-0">
+                            {segment.timestamp}
+                          </div>
+                          <div>{segment.text}</div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center p-6">
+                      <p>Raw transcript data is not available.</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </div>

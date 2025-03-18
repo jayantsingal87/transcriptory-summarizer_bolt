@@ -34,6 +34,9 @@ const Index = () => {
       
       // Process transcript
       if (transcriptData.success) {
+        // Store raw transcript if the option is enabled
+        const rawTranscript = options.showRawTranscript ? transcriptData.transcript : undefined;
+        
         const processedData = await processTranscript(
           vidId, 
           transcriptData.transcript, 
@@ -41,7 +44,18 @@ const Index = () => {
           options
         );
         
+        // Add raw transcript to the result if needed
+        if (rawTranscript) {
+          processedData.rawTranscript = rawTranscript;
+        }
+        
         setResult(processedData);
+        
+        // Show toast for successful processing
+        toast({
+          title: "Processing Complete",
+          description: `Transcript analyzed with ${options.detailLevel} detail level`,
+        });
       }
     } catch (error) {
       console.error("Error processing transcript:", error);
