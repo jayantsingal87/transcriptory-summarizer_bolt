@@ -29,6 +29,8 @@ export function WordCloud({ data, width = 500, height = 300 }: WordCloudProps) {
     layout.start();
 
     function draw(words: any[]) {
+      const colorScale = d3.scaleOrdinal(d3.schemeCategory10 as readonly string[]);
+      
       d3.select(svgRef.current)
         .attr("width", layout.size()[0])
         .attr("height", layout.size()[1])
@@ -40,7 +42,7 @@ export function WordCloud({ data, width = 500, height = 300 }: WordCloudProps) {
         .append("text")
         .style("font-size", d => `${d.size}px`)
         .style("font-family", "Impact")
-        .style("fill", (_, i) => d3.schemeCategory10[i % 10])
+        .style("fill", (_, i) => colorScale(i.toString()))
         .attr("text-anchor", "middle")
         .attr("transform", d => `translate(${d.x},${d.y}) rotate(${d.rotate})`)
         .text(d => d.text);

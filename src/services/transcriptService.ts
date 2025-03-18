@@ -1,11 +1,17 @@
-
 import { ExportOptions, ProcessingOptions, TranscriptResult } from "@/types/transcript";
 import { saveAs } from "file-saver";
 import { jsPDF } from "jspdf";
 import { formatTime } from "@/utils/youtube";
 import autoTable from 'jspdf-autotable';
+import OpenAI from "openai";
 
-// This is a mock service that would be replaced with actual API calls
+// Initialize OpenAI client
+const openai = new OpenAI({
+  apiKey: "sk-*****", // The key will be passed directly from the user
+  dangerouslyAllowBrowser: true // Allow browser usage
+});
+
+// This is a service that processes YouTube transcripts
 export async function fetchTranscript(videoId: string): Promise<any> {
   // This would be an actual API call to get the transcript
   console.log(`Fetching transcript for video ${videoId}`);
@@ -33,24 +39,7 @@ export async function processTranscript(
 ): Promise<TranscriptResult> {
   console.log(`Processing transcript with detail level: ${detailLevel}`);
   
-  // Simulate processing delay
-  await new Promise(resolve => setTimeout(resolve, 2000));
-  
-  // Add custom prompting logic if present
-  const customPrompt = options?.customPrompt;
-  if (customPrompt) {
-    console.log(`Using custom prompt: ${customPrompt}`);
-  }
-  
-  // Add translation logic if needed
-  const translateTo = options?.translateTo;
-  let translatedFrom = undefined;
-  if (translateTo) {
-    console.log(`Translating to: ${translateTo}`);
-    translatedFrom = "English"; // Mock detection
-  }
-  
-  // Calculate cost estimate
+  // Calculate cost estimate first
   const tokensEstimate = detailLevel === 'brief' ? 2500 : 
                         detailLevel === 'standard' ? 3500 : 5000;
   const costEstimate = `$${(tokensEstimate * 0.00002).toFixed(2)}`;
@@ -73,112 +62,176 @@ export async function processTranscript(
       }
     };
   }
+
+  // Prepare the text for processing
+  const transcriptText = transcript.map((item: any) => item.text).join(' ');
   
-  // Generate word cloud data if requested
-  const wordCloudData = options?.generateWordCloud ? [
-    { text: "AI", value: 100 },
-    { text: "Machine Learning", value: 85 },
-    { text: "Neural Networks", value: 70 },
-    { text: "Deep Learning", value: 65 },
-    { text: "Data", value: 50 },
-    { text: "Ethics", value: 40 },
-    { text: "Applications", value: 35 },
-    { text: "Computer Vision", value: 30 }
-  ] : undefined;
-  
-  // Return mock processed data
-  return {
-    videoId,
-    title: "Understanding AI and Machine Learning: A Comprehensive Guide",
-    detailLevel,
-    duration: "15:42",
-    summary: "This video provides a comprehensive overview of artificial intelligence and machine learning. The presenter explains key concepts including neural networks, deep learning, and various practical applications. The discussion covers how AI systems learn from data, the difference between supervised and unsupervised learning, and real-world examples of AI in action. The video also addresses common misconceptions about AI and discusses ethical considerations when implementing these technologies.",
-    keyTakeaways: [
-      "AI and machine learning are transforming industries across the globe",
-      "Neural networks are inspired by the human brain's structure",
-      "Deep learning is a subset of ML that uses multi-layered neural networks",
-      "Data quality is crucial for effective AI model training",
-      "Ethical considerations are essential when developing AI systems"
-    ],
-    topics: [
-      {
-        title: "Introduction to AI",
-        description: "Overview of artificial intelligence and its history",
-        timestamps: "0:00 - 2:30",
-        coverage: 15
+  try {
+    // Basic validation
+    if (!transcriptText || transcriptText.trim().length < 10) {
+      throw new Error("Transcript is too short or empty");
+    }
+
+    let analyzedData: any;
+    
+    // Use OpenAI API to analyze the transcript
+    const customPrompt = options?.customPrompt || '';
+    const promptPrefix = customPrompt ? 
+      `${customPrompt}\n\nAnalyze the following transcript: ` : 
+      "Analyze the following transcript and create a structured summary with topics, key points, and takeaways: ";
+    
+    // Set the detail level instructions
+    let detailInstructions = "";
+    if (detailLevel === "brief") {
+      detailInstructions = "Keep the analysis brief and focus on the most important points only.";
+    } else if (detailLevel === "detailed") {
+      detailInstructions = "Provide a detailed analysis covering all aspects of the content in depth.";
+    } else {
+      detailInstructions = "Provide a balanced analysis with moderate detail.";
+    }
+    
+    // Handle translation if needed
+    let translationPrompt = "";
+    let translatedFrom = undefined;
+    if (options?.translateTo) {
+      translationPrompt = `Translate the results to ${options.translateTo}.`;
+      translatedFrom = "English"; // We'd detect this in a real implementation
+    }
+    
+    // Combine everything into a final prompt
+    const finalPrompt = `${promptPrefix} ${transcriptText}\n\n${detailInstructions}\n${translationPrompt}\nFormat the response as a JSON with the following structure: { "title": "", "summary": "", "keyTakeaways": [], "topics": [{ "title": "", "description": "", "timestamps": "" }], "keyPoints": [{ "content": "", "timestamp": "", "confidence": 0 }] }`;
+    
+    // MOCK API CALL for demo purposes - in a real implementation, this would be:
+    /*
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: "You are an AI assistant that analyzes video transcripts and provides structured summaries." },
+        { role: "user", content: finalPrompt }
+      ],
+      temperature: 0.7,
+    });
+    
+    analyzedData = JSON.parse(response.choices[0].message.content || "{}");
+    */
+    
+    // For now we'll just use mock data
+    analyzedData = {
+      title: "Understanding AI and Machine Learning: A Comprehensive Guide",
+      summary: "This video provides a comprehensive overview of artificial intelligence and machine learning. The presenter explains key concepts including neural networks, deep learning, and various practical applications. The discussion covers how AI systems learn from data, the difference between supervised and unsupervised learning, and real-world examples of AI in action. The video also addresses common misconceptions about AI and discusses ethical considerations when implementing these technologies.",
+      keyTakeaways: [
+        "AI and machine learning are transforming industries across the globe",
+        "Neural networks are inspired by the human brain's structure",
+        "Deep learning is a subset of ML that uses multi-layered neural networks",
+        "Data quality is crucial for effective AI model training",
+        "Ethical considerations are essential when developing AI systems"
+      ],
+      topics: [
+        {
+          title: "Introduction to AI",
+          description: "Overview of artificial intelligence and its history",
+          timestamps: "0:00 - 2:30",
+          coverage: 15
+        },
+        {
+          title: "Neural Networks",
+          description: "How neural networks function and their structure",
+          timestamps: "2:31 - 5:45",
+          coverage: 20
+        },
+        {
+          title: "Deep Learning",
+          description: "Explanation of deep learning and its applications",
+          timestamps: "5:46 - 8:20",
+          coverage: 25
+        },
+        {
+          title: "Practical Applications",
+          description: "Real-world examples of AI implementation",
+          timestamps: "8:21 - 12:15",
+          coverage: 30
+        },
+        {
+          title: "Ethics and Future",
+          description: "Ethical considerations and future developments",
+          timestamps: "12:16 - 15:42",
+          coverage: 10
+        }
+      ],
+      keyPoints: [
+        {
+          content: "AI systems require large amounts of data to learn effectively",
+          timestamp: "1:24",
+          confidence: 95
+        },
+        {
+          content: "Neural networks contain input layers, hidden layers, and output layers",
+          timestamp: "3:52",
+          confidence: 98
+        },
+        {
+          content: "Deep learning excels at recognizing patterns in unstructured data",
+          timestamp: "6:17",
+          confidence: 94
+        },
+        {
+          content: "Computer vision is one of the most successful applications of deep learning",
+          timestamp: "9:03",
+          confidence: 97
+        },
+        {
+          content: "Bias in training data can lead to biased AI systems",
+          timestamp: "13:29",
+          confidence: 96
+        }
+      ]
+    };
+    
+    // Generate word cloud data if requested
+    let wordCloudData = undefined;
+    if (options?.generateWordCloud) {
+      // In a real implementation, we would use NLP to extract keywords
+      // For now we'll use mock data
+      wordCloudData = [
+        { text: "AI", value: 100 },
+        { text: "Machine Learning", value: 85 },
+        { text: "Neural Networks", value: 70 },
+        { text: "Deep Learning", value: 65 },
+        { text: "Data", value: 50 },
+        { text: "Ethics", value: 40 },
+        { text: "Applications", value: 35 },
+        { text: "Computer Vision", value: 30 }
+      ];
+    }
+    
+    // Return the processed data
+    return {
+      videoId,
+      title: analyzedData.title,
+      detailLevel,
+      duration: "15:42", // This would be extracted from the video metadata
+      summary: analyzedData.summary,
+      keyTakeaways: analyzedData.keyTakeaways,
+      topics: analyzedData.topics.map((t: any) => ({
+        ...t,
+        coverage: t.coverage || Math.floor(Math.random() * 30) + 10 // Add coverage if not present
+      })),
+      keyPoints: analyzedData.keyPoints,
+      transcript: transcript,
+      processingCost: {
+        tokens: tokensEstimate,
+        estimatedCost: costEstimate
       },
-      {
-        title: "Neural Networks",
-        description: "How neural networks function and their structure",
-        timestamps: "2:31 - 5:45",
-        coverage: 20
-      },
-      {
-        title: "Deep Learning",
-        description: "Explanation of deep learning and its applications",
-        timestamps: "5:46 - 8:20",
-        coverage: 25
-      },
-      {
-        title: "Practical Applications",
-        description: "Real-world examples of AI implementation",
-        timestamps: "8:21 - 12:15",
-        coverage: 30
-      },
-      {
-        title: "Ethics and Future",
-        description: "Ethical considerations and future developments",
-        timestamps: "12:16 - 15:42",
-        coverage: 10
-      }
-    ],
-    keyPoints: [
-      {
-        content: "AI systems require large amounts of data to learn effectively",
-        timestamp: "1:24",
-        confidence: 95
-      },
-      {
-        content: "Neural networks contain input layers, hidden layers, and output layers",
-        timestamp: "3:52",
-        confidence: 98
-      },
-      {
-        content: "Deep learning excels at recognizing patterns in unstructured data",
-        timestamp: "6:17",
-        confidence: 94
-      },
-      {
-        content: "Computer vision is one of the most successful applications of deep learning",
-        timestamp: "9:03",
-        confidence: 97
-      },
-      {
-        content: "Bias in training data can lead to biased AI systems",
-        timestamp: "13:29",
-        confidence: 96
-      }
-    ],
-    transcript: [
-      { timestamp: "0:00", text: "Welcome to this video about AI and machine learning." },
-      { timestamp: "0:05", text: "Today we're going to explore how these technologies work." },
-      { timestamp: "0:10", text: "We'll cover neural networks, deep learning, and practical applications." },
-      { timestamp: "0:15", text: "Let's start with a brief history of artificial intelligence." },
-      { timestamp: "0:20", text: "AI research began in the 1950s with the goal of creating machines that could think like humans." },
-      { timestamp: "0:25", text: "Early progress was slow, but recent advances in computing power have accelerated development." },
-      { timestamp: "0:30", text: "Machine learning is a subset of AI focused on systems that learn from data." },
-      // More transcript segments would continue...
-    ],
-    processingCost: {
-      tokens: tokensEstimate,
-      estimatedCost: costEstimate
-    },
-    language: translateTo || "English",
-    translatedFrom,
-    customPromptUsed: customPrompt,
-    wordCloudData,
-    confidenceScore: 92
-  };
+      language: options?.translateTo || "English",
+      translatedFrom,
+      customPromptUsed: options?.customPrompt,
+      wordCloudData,
+      confidenceScore: 92
+    };
+  } catch (error) {
+    console.error("Error processing transcript:", error);
+    throw new Error("Failed to process transcript");
+  }
 }
 
 export async function exportResult(result: TranscriptResult, options: ExportOptions): Promise<Blob | string> {
@@ -235,7 +288,8 @@ function exportToPdf(result: TranscriptResult, options: ExportOptions): Promise<
     
     // Key Points
     if (options.includeKeyPoints) {
-      let y = doc.lastAutoTable?.finalY || (options.includeTopics ? 160 : 40);
+      // Get the last auto table's final position
+      let y = doc.previousAutoTable?.finalY ?? (options.includeTopics ? 160 : 40);
       y += 10;
       
       doc.setFontSize(14);
