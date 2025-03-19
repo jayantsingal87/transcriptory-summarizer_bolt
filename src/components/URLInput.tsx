@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { extractVideoId } from "@/utils/youtube";
+import { extractVideoId, isValidYoutubeUrl } from "@/utils/youtube";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Check, ChevronDown, Globe, MessageSquare, Settings, FileText, Lightbulb } from "lucide-react";
+import { Check, ChevronDown, Globe, MessageSquare, Settings, FileText, Lightbulb, PlaySquare, Play } from "lucide-react";
 import { ProcessingOptions } from "@/types/transcript";
 import { 
   Command,
@@ -19,6 +19,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { isPlaylist } from "@/services/transcriptService";
 
 const languages = [
   { value: "", label: "Original" },
@@ -35,7 +36,7 @@ const languages = [
 ];
 
 interface URLInputProps {
-  onSubmit: (videoId: string, options: ProcessingOptions) => void;
+  onSubmit: (url: string, options: ProcessingOptions) => void;
   isLoading: boolean;
 }
 
@@ -54,12 +55,11 @@ export function URLInput({ onSubmit, isLoading }: URLInputProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const videoId = extractVideoId(url);
-    
-    if (!videoId) {
+    // Check if the URL is a valid YouTube URL (video or playlist)
+    if (!isValidYoutubeUrl(url)) {
       toast({
         title: "Invalid YouTube URL",
-        description: "Please enter a valid YouTube video URL",
+        description: "Please enter a valid YouTube video or playlist URL",
         variant: "destructive",
       });
       return;
@@ -75,7 +75,9 @@ export function URLInput({ onSubmit, isLoading }: URLInputProps) {
       showRawTranscript
     };
     
-    onSubmit(videoId, options);
+    // Pass the URL directly instead of extracting the ID
+    // The parent component will determine if it's a playlist or video
+    onSubmit(url, options);
   };
 
   // Function for quick example URLs
@@ -83,20 +85,41 @@ export function URLInput({ onSubmit, isLoading }: URLInputProps) {
     setUrl(exampleUrl);
   };
 
+  // Determine if the current URL is a playlist
+  const isPlaylistUrl = url ? isPlaylist(url) : false;
+
   return (
     <TooltipProvider>
       <Card className="w-full max-w-xl mx-auto card-gradient border shadow-md">
         <CardContent className="pt-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Input
-                type="url"
-                placeholder="Paste YouTube video URL"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                className="w-full bg-white/80 dark:bg-gray-900/80 transition-all"
-                required
-              />
+              <div className="flex items-center gap-2">
+                <Input
+                  type="url"
+                  placeholder="Paste YouTube video or playlist URL"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  className="w-full bg-white/80 dark:bg-gray-900/80 transition-all"
+                  required
+                />
+                {url && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex-shrink-0">
+                        {isPlaylistUrl ? (
+                          <Play className="h-5 w-5 text-primary" />
+                        ) : (
+                          <PlaySquare className="h-5 w-5 text-primary" />
+                        )}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{isPlaylistUrl ? "Playlist URL detected" : "Video URL detected"}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+              </div>
               <div className="flex flex-wrap gap-2 text-xs">
                 <span className="text-muted-foreground">Examples:</span>
                 <Button 
@@ -122,9 +145,9 @@ export function URLInput({ onSubmit, isLoading }: URLInputProps) {
                   variant="link" 
                   size="sm" 
                   className="h-auto p-0 text-xs"
-                  onClick={() => setExampleUrl("https://www.youtube.com/watch?v=OJ8isyS9dGQ")}
+                  onClick={() => setExampleUrl("https://www.youtube.com/playlist?list=PLFs4vir_WsTwEd-nJgVJCZPNL3HALHHpF")}
                 >
-                  Ted Talk
+                  Tech Playlist
                 </Button>
               </div>
             </div>
@@ -325,10 +348,14 @@ export function URLInput({ onSubmit, isLoading }: URLInputProps) {
               disabled={isLoading}
             >
               {isLoading 
-                ? "Processing..." 
+                ? isPlaylistUrl 
+                  ? "Processing Playlist..." 
+                  : "Processing..." 
                 : estimateCost 
                   ? "Estimate Processing Cost" 
-                  : "Analyze Transcript"}
+                  : isPlaylistUrl
+                    ? "Analyze Playlist"
+                    : "Analyze Transcript"}
             </Button>
           </form>
         </CardContent>

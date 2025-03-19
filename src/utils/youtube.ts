@@ -1,32 +1,37 @@
 
-// Extract YouTube video ID from various URL formats
+// Function to extract YouTube video ID from URL
 export function extractVideoId(url: string): string | null {
-  if (!url) return null;
+  // Regular expression to match YouTube video URLs
+  const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+  const match = url.match(regex);
   
-  // Handle youtu.be format
-  if (url.includes('youtu.be')) {
-    const match = url.match(/youtu\.be\/([^?&#]+)/);
-    return match ? match[1] : null;
-  }
-  
-  // Handle youtube.com/watch?v= format
-  const match = url.match(/[?&]v=([^?&#]+)/);
-  if (match) {
+  if (match && match[1]) {
     return match[1];
-  }
-  
-  // Handle youtube.com/embed/ format
-  const embedMatch = url.match(/youtube\.com\/embed\/([^?&#]+)/);
-  if (embedMatch) {
-    return embedMatch[1];
   }
   
   return null;
 }
 
-// Format seconds to MM:SS format
+// Check if URL is for a playlist
+export function isPlaylistUrl(url: string): boolean {
+  return url.includes('list=') || url.includes('playlist?');
+}
+
+// Check if it's a valid YouTube URL (video or playlist)
+export function isValidYoutubeUrl(url: string): boolean {
+  // Check if it's a video URL
+  const isVideo = !!extractVideoId(url);
+  
+  // Check if it's a playlist URL
+  const isPlaylist = isPlaylistUrl(url);
+  
+  return isVideo || isPlaylist;
+}
+
+// Format time for display (converts seconds to MM:SS format)
 export function formatTime(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
+  
+  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
 }

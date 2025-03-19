@@ -5,7 +5,16 @@ import { HeroSection } from "@/components/HeroSection";
 import { URLInput } from "@/components/URLInput";
 import { ResultsDisplay } from "@/components/ResultsDisplay";
 import { Footer } from "@/components/Footer";
-import { downloadExport, exportResult, fetchTranscript, processTranscript, setOpenAIApiKey } from "@/services/transcriptService";
+import { 
+  downloadExport, 
+  exportResult, 
+  fetchTranscript, 
+  processTranscript, 
+  setOpenAIApiKey, 
+  isPlaylist, 
+  extractPlaylistId, 
+  fetchPlaylistItems 
+} from "@/services/transcriptService";
 import { ExportOptions, ProcessingOptions, TranscriptResult } from "@/types/transcript";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
@@ -20,17 +29,23 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Key, AlertCircle } from "lucide-react";
+import { Key, AlertCircle, Play, PlaySquare } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { extractVideoId } from "@/utils/youtube";
+
+const DEFAULT_OPENAI_API_KEY = "sk-WdMZKiBWzBgfn-RzLgab9yPeiYoK3kZehWvbHYfFFQT3BlbkFJ2bm1VAcWdXdXvM1r2rDh8VRD22MBx499h0dSzpyt4A";
 
 const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<TranscriptResult | null>(null);
   const [videoId, setVideoId] = useState("");
   const [isCostEstimate, setIsCostEstimate] = useState(false);
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem("openai_api_key") || "");
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem("openai_api_key") || DEFAULT_OPENAI_API_KEY);
   const [apiKeyDialogOpen, setApiKeyDialogOpen] = useState(false);
   const [apiKeyError, setApiKeyError] = useState("");
+  const [isPlaylistProcessing, setIsPlaylistProcessing] = useState(false);
+  const [playlistResults, setPlaylistResults] = useState<TranscriptResult[]>([]);
+  const [currentPlaylistIndex, setCurrentPlaylistIndex] = useState(0);
   const { toast } = useToast();
 
   // Check if API key is valid on component mount
@@ -44,6 +59,13 @@ const Index = () => {
           title: "API Key Error",
           description: "Your saved OpenAI API key appears to be invalid. Please enter a new one.",
           variant: "destructive"
+        });
+      } else {
+        // Save the API key
+        localStorage.setItem("openai_api_key", apiKey);
+        toast({
+          title: "API Key Set",
+          description: "Your OpenAI API key has been set successfully.",
         });
       }
     } else {
@@ -78,8 +100,121 @@ const Index = () => {
     }
   };
 
-  const handleProcessTranscript = async (vidId: string, options: ProcessingOptions) => {
+  const handlePlaylistProcessing = async (url: string, options: ProcessingOptions) => {
     try {
+      setIsLoading(true);
+      setIsPlaylistProcessing(true);
+      setPlaylistResults([]);
+      setCurrentPlaylistIndex(0);
+      
+      // Extract playlist ID
+      const playlistId = extractPlaylistId(url);
+      if (!playlistId) {
+        toast({
+          title: "Invalid Playlist URL",
+          description: "Could not extract playlist ID from the provided URL.",
+          variant: "destructive"
+        });
+        setIsLoading(false);
+        setIsPlaylistProcessing(false);
+        return;
+      }
+      
+      // Fetch playlist items
+      const playlistItems = await fetchPlaylistItems(playlistId);
+      
+      if (playlistItems.length === 0) {
+        toast({
+          title: "Empty Playlist",
+          description: "The playlist does not contain any videos.",
+          variant: "destructive"
+        });
+        setIsLoading(false);
+        setIsPlaylistProcessing(false);
+        return;
+      }
+      
+      toast({
+        title: "Processing Playlist",
+        description: `Processing ${playlistItems.length} videos from the playlist. This may take some time.`,
+      });
+      
+      // Process each video in the playlist
+      const results: TranscriptResult[] = [];
+      
+      for (let i = 0; i < playlistItems.length; i++) {
+        try {
+          const item = playlistItems[i];
+          setCurrentPlaylistIndex(i);
+          
+          // Fetch transcript for this video
+          const transcriptData = await fetchTranscript(item.videoId);
+          
+          if (transcriptData.success) {
+            // Process transcript
+            const processedData = await processTranscript(
+              item.videoId,
+              transcriptData.transcript,
+              options.detailLevel,
+              options
+            );
+            
+            // Add video title if not in the processed data
+            if (!processedData.title && transcriptData.title) {
+              processedData.title = transcriptData.title;
+            }
+            
+            // Add raw transcript if needed
+            if (options.showRawTranscript && transcriptData.transcript) {
+              processedData.rawTranscript = transcriptData.transcript;
+            }
+            
+            results.push(processedData);
+            
+            // Update playlist results to show progress
+            setPlaylistResults([...results]);
+            
+            toast({
+              title: `Processed ${i + 1} of ${playlistItems.length}`,
+              description: `Completed: ${processedData.title || item.title}`,
+            });
+          }
+        } catch (error) {
+          console.error(`Error processing video ${playlistItems[i].videoId}:`, error);
+          // Continue with the next video
+        }
+      }
+      
+      // Show the first result
+      if (results.length > 0) {
+        setResult(results[0]);
+        setVideoId(results[0].videoId);
+        setIsCostEstimate(false);
+      }
+      
+      toast({
+        title: "Playlist Processing Complete",
+        description: `Successfully processed ${results.length} out of ${playlistItems.length} videos.`,
+      });
+    } catch (error) {
+      console.error("Error processing playlist:", error);
+      toast({
+        title: "Playlist Processing Error",
+        description: "An error occurred while processing the playlist. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleProcessTranscript = async (url: string, options: ProcessingOptions) => {
+    try {
+      // Reset previous results
+      setResult(null);
+      setPlaylistResults([]);
+      setIsPlaylistProcessing(false);
+      
       // Check if API key is set
       if (!apiKey && !options.estimateCostOnly) {
         setApiKeyDialogOpen(true);
@@ -87,8 +222,27 @@ const Index = () => {
       }
       
       setIsLoading(true);
-      setVideoId(vidId);
       setIsCostEstimate(options.estimateCostOnly || false);
+      
+      // Check if it's a playlist or a single video
+      if (isPlaylist(url)) {
+        await handlePlaylistProcessing(url, options);
+        return;
+      }
+      
+      // It's a single video
+      const vidId = extractVideoId(url);
+      if (!vidId) {
+        toast({
+          title: "Invalid YouTube URL",
+          description: "Could not extract video ID from the provided URL.",
+          variant: "destructive"
+        });
+        setIsLoading(false);
+        return;
+      }
+      
+      setVideoId(vidId);
       
       if (options.estimateCostOnly) {
         // Only get cost estimate
@@ -112,6 +266,11 @@ const Index = () => {
             options.detailLevel,
             options
           );
+          
+          // Add video title if not in the processed data
+          if (!processedData.title && transcriptData.title) {
+            processedData.title = transcriptData.title;
+          }
           
           // Add raw transcript to the result if needed
           if (rawTranscript) {
@@ -173,6 +332,13 @@ const Index = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handlePlaylistItemSelect = (index: number) => {
+    if (index >= 0 && index < playlistResults.length) {
+      setResult(playlistResults[index]);
+      setVideoId(playlistResults[index].videoId);
     }
   };
 
@@ -245,13 +411,18 @@ const Index = () => {
             </DialogContent>
           </Dialog>
           
-          {/* Example URLs - Updated with real examples */}
+          {/* Example URLs - Updated to include playlists */}
           <div className="mb-6">
             <h3 className="text-lg font-medium mb-2">Example URLs to try:</h3>
             <div className="space-y-1 text-sm text-muted-foreground">
+              <div className="flex items-center gap-1"><PlaySquare className="h-3 w-3" /> <p>Videos:</p></div>
               <p>• https://www.youtube.com/watch?v=dQw4w9WgXcQ (Rick Astley - Never Gonna Give You Up)</p>
               <p>• https://www.youtube.com/watch?v=hLS3-RiokIw (AI Technology Explained)</p>
               <p>• https://www.youtube.com/watch?v=OJ8isyS9dGQ (TED Talk on Human Connection)</p>
+              
+              <div className="flex items-center gap-1 mt-2"><Play className="h-3 w-3" /> <p>Playlists:</p></div>
+              <p>• https://www.youtube.com/playlist?list=PLFs4vir_WsTwEd-nJgVJCZPNL3HALHHpF (Short Technology Videos)</p>
+              <p>• https://www.youtube.com/playlist?list=PLFs4vir_WsTzcfD7ZJ8z_9RsZJ0sNarhd (TED Talks Collection)</p>
             </div>
           </div>
           
@@ -262,14 +433,41 @@ const Index = () => {
             />
           </div>
           
+          {/* Playlist Navigation (if processing a playlist) */}
+          {playlistResults.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-lg font-medium mb-2">Playlist Videos:</h3>
+              <div className="flex flex-wrap gap-2">
+                {playlistResults.map((item, index) => (
+                  <Button 
+                    key={index} 
+                    variant={result?.videoId === item.videoId ? "default" : "outline"}
+                    size="sm"
+                    className={result?.videoId === item.videoId ? "btn-gradient" : ""}
+                    onClick={() => handlePlaylistItemSelect(index)}
+                  >
+                    {index + 1}. {item.title ? (item.title.length > 20 ? item.title.substring(0, 20) + "..." : item.title) : `Video ${index + 1}`}
+                  </Button>
+                ))}
+                {isPlaylistProcessing && isLoading && (
+                  <div className="text-sm text-muted-foreground animate-pulse">
+                    Processing video {currentPlaylistIndex + 1}...
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
           {(isLoading || result) && (
             <div className="py-4">
-              {isLoading ? (
+              {isLoading && !playlistResults.length ? (
                 <div className="text-center animate-pulse-slow">
                   <p className="text-lg mb-2">
                     {isCostEstimate 
                       ? "Estimating processing cost..." 
-                      : "Processing your transcript..."}
+                      : isPlaylistProcessing
+                        ? `Processing playlist (video ${currentPlaylistIndex + 1})...`
+                        : "Processing your transcript..."}
                   </p>
                   <p className="text-sm text-muted-foreground">This may take a moment</p>
                 </div>
