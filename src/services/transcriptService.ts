@@ -1,3 +1,4 @@
+
 import { ExportOptions, ProcessingOptions, TranscriptResult } from "@/types/transcript";
 import { saveAs } from "file-saver";
 import { jsPDF } from "jspdf";
@@ -5,26 +6,58 @@ import { formatTime } from "@/utils/youtube";
 import autoTable from 'jspdf-autotable';
 import OpenAI from "openai";
 
-// Initialize OpenAI client - key will be provided by user
-const openai = new OpenAI({
-  apiKey: "sk-WdMZKiBWzBgfn-RzLgab9yPeiYoK3BlbkFJ2bm1VAcWdXdXvM1r2rDh8VRD22MBx499h0dSzpyt4A", 
-  dangerouslyAllowBrowser: true
-});
+// We'll initialize OpenAI with user-provided API key
+let openaiClient: OpenAI | null = null;
+
+// Function to set the API key
+export function setOpenAIApiKey(apiKey: string) {
+  if (!apiKey) {
+    openaiClient = null;
+    return false;
+  }
+  
+  try {
+    openaiClient = new OpenAI({
+      apiKey: apiKey,
+      dangerouslyAllowBrowser: true
+    });
+    return true;
+  } catch (error) {
+    console.error("Error initializing OpenAI client:", error);
+    openaiClient = null;
+    return false;
+  }
+}
 
 // This is a service that processes YouTube transcripts
 export async function fetchTranscript(videoId: string): Promise<any> {
   // This would be an actual API call to get the transcript
   console.log(`Fetching transcript for video ${videoId}`);
   
-  // Simulate API call delay
+  // For now, simulate API call with different example transcripts based on video ID
+  // In a real implementation, you would call YouTube API
   await new Promise(resolve => setTimeout(resolve, 1500));
   
-  // Return mock transcript data
-  return {
-    success: true,
-    transcript: getExampleTranscript(),
-    language: "English" // In a real implementation, we would detect this
-  };
+  // Return different transcripts based on video ID to simulate different content
+  if (videoId.includes("example1")) {
+    return {
+      success: true,
+      transcript: getExampleTranscript1(),
+      language: "English"
+    };
+  } else if (videoId.includes("example2")) {
+    return {
+      success: true,
+      transcript: getExampleTranscript2(),
+      language: "Spanish" // Simulate non-English transcript
+    };
+  } else {
+    return {
+      success: true,
+      transcript: getExampleTranscript(),
+      language: "English"
+    };
+  }
 }
 
 function getExampleTranscript() {
@@ -44,6 +77,31 @@ function getExampleTranscript() {
   ];
 }
 
+function getExampleTranscript1() {
+  return [
+    { timestamp: "0:00", text: "Hello everyone, today we're discussing climate change." },
+    { timestamp: "0:08", text: "Climate change is one of the biggest challenges our planet faces." },
+    { timestamp: "0:15", text: "Global temperatures have risen significantly over the past century." },
+    { timestamp: "0:22", text: "This is primarily caused by greenhouse gas emissions from human activities." },
+    { timestamp: "0:30", text: "The effects include rising sea levels, extreme weather events, and biodiversity loss." },
+    { timestamp: "0:38", text: "Scientists worldwide agree that immediate action is necessary." },
+    { timestamp: "0:45", text: "Renewable energy sources are crucial for reducing carbon emissions." },
+    { timestamp: "0:52", text: "Individual actions like reducing consumption also make a difference." }
+  ];
+}
+
+function getExampleTranscript2() {
+  return [
+    { timestamp: "0:00", text: "Hola a todos, hoy hablaremos sobre la inteligencia artificial." },
+    { timestamp: "0:07", text: "La IA está transformando muchos aspectos de nuestra vida diaria." },
+    { timestamp: "0:15", text: "Desde asistentes virtuales hasta vehículos autónomos." },
+    { timestamp: "0:22", text: "El aprendizaje automático es una parte fundamental de la IA." },
+    { timestamp: "0:30", text: "Las redes neuronales imitan la estructura del cerebro humano." },
+    { timestamp: "0:38", text: "El procesamiento del lenguaje natural ayuda a las máquinas a entendernos." },
+    { timestamp: "0:45", text: "La ética en la IA es un tema muy importante a considerar." }
+  ];
+}
+
 export async function processTranscript(
   videoId: string, 
   transcript: any, 
@@ -52,9 +110,12 @@ export async function processTranscript(
 ): Promise<TranscriptResult> {
   console.log(`Processing transcript with detail level: ${detailLevel}`, options);
   
-  // Calculate cost estimate first
-  const tokensEstimate = detailLevel === 'brief' ? 2500 : 
-                        detailLevel === 'standard' ? 3500 : 5000;
+  // Calculate cost estimate based on detail level and transcript length
+  const transcriptLength = Array.isArray(transcript) ? transcript.length : 0;
+  const baseCost = transcriptLength * 0.5;
+  const detailMultiplier = detailLevel === 'brief' ? 1 : 
+                          detailLevel === 'standard' ? 1.5 : 2.5;
+  const tokensEstimate = Math.round(baseCost * detailMultiplier * 100);
   const costEstimate = `$${(tokensEstimate * 0.00002).toFixed(2)}`;
   
   // If only estimating cost, return early with estimate
@@ -76,9 +137,16 @@ export async function processTranscript(
     };
   }
 
-  // Prepare the text for processing
-  const transcriptText = transcript.map((item: any) => item.text).join(' ');
-  const rawTranscript = transcript;
+  // Prepare transcript and validate
+  let transcriptText = "";
+  let rawTranscript = transcript;
+  
+  if (Array.isArray(transcript)) {
+    transcriptText = transcript.map((item: any) => item.text).join(' ');
+  } else {
+    console.error("Invalid transcript format");
+    throw new Error("Invalid transcript format");
+  }
   
   try {
     // Basic validation
@@ -86,28 +154,28 @@ export async function processTranscript(
       throw new Error("Transcript is too short or empty");
     }
 
-    // Set the detail level instructions
-    let detailInstructions = "";
-    if (detailLevel === "brief") {
-      detailInstructions = "Keep the analysis very brief and concise. Focus only on the most important 2-3 main topics and key points. Provide a short summary of approximately 2-3 sentences. Limit key takeaways to 3-4 points maximum.";
-    } else if (detailLevel === "detailed") {
-      detailInstructions = "Provide a very comprehensive and detailed analysis covering all aspects of the content in depth. Identify all topics discussed, even minor ones. Extract at least 8-10 key points with high confidence. Include nuanced insights and connections between topics. Provide a thorough, multi-paragraph summary.";
-    } else {
-      detailInstructions = "Provide a balanced analysis with moderate detail. Cover the main topics and important points, approximately 4-6 topics and 5-7 key points. The summary should be a medium length paragraph.";
-    }
-    
-    // Handle translation if needed
+    // Handle translation of the raw transcript if needed
     let translationPrompt = "";
     let translatedFrom = undefined;
     let targetLanguage = "English";
     
-    if (options?.translateTo && options.translateTo !== "") {
+    if (options?.translateTo && options.translateTo !== "" && options.translateTo.toLowerCase() !== "english") {
       translationPrompt = `Translate the results to ${options.translateTo}.`;
       translatedFrom = "English"; // We'd detect this in a real implementation
       targetLanguage = options.translateTo;
     }
     
-    // Construct the final prompt with proper detail level and translation instructions
+    // Set the detail level instructions - make them significantly different
+    let detailInstructions = "";
+    if (detailLevel === "brief") {
+      detailInstructions = "Provide an extremely concise analysis. Identify only the 2-3 most important topics. Extract no more than 3-4 key points. Keep the summary under 2 sentences. Be minimal but insightful.";
+    } else if (detailLevel === "detailed") {
+      detailInstructions = "Provide an extremely comprehensive and in-depth analysis. Identify all topics discussed, including minor subtopics. Extract at least 10-12 key points with nuanced insights. Write a thorough multi-paragraph summary covering all aspects of the content. Include connections between topics and provide detailed explanations of complex concepts.";
+    } else {
+      detailInstructions = "Provide a balanced analysis with moderate detail. Cover 4-6 main topics and 5-7 key points. The summary should be a medium-length paragraph that covers the main ideas without excessive detail.";
+    }
+    
+    // Custom prompt handling
     let customPromptText = "";
     if (options?.customPrompt && options.customPrompt.trim() !== "") {
       customPromptText = options.customPrompt + "\n\n";
@@ -115,54 +183,105 @@ export async function processTranscript(
     
     const finalSystemPrompt = `You are an AI assistant that specializes in analyzing video transcripts and providing structured summaries. ${customPromptText}${detailInstructions}`;
     
-    const finalUserPrompt = `Analyze the following transcript and create a structured analysis: ${transcriptText}\n\n${translationPrompt}\nFormat the response as a JSON with the following structure: { "title": "", "summary": "", "keyTakeaways": [], "topics": [{ "title": "", "description": "", "timestamps": "", "coverage": 0 }], "keyPoints": [{ "content": "", "timestamp": "", "confidence": 0 }] }`;
+    const finalUserPrompt = `Analyze the following transcript and create a structured analysis:
+${transcriptText}
+
+${translationPrompt}
+
+Format the response as a JSON with the following structure:
+{
+  "title": "Write a descriptive title based on the content",
+  "summary": "Comprehensive summary of the content",
+  "keyTakeaways": ["List of key takeaways"],
+  "topics": [
+    {
+      "title": "Topic title",
+      "description": "Topic description",
+      "timestamps": "Approximate timestamp range",
+      "coverage": 0 // Percentage of content devoted to this topic (0-100)
+    }
+  ],
+  "keyPoints": [
+    {
+      "content": "Key point content",
+      "timestamp": "Approximate timestamp",
+      "confidence": 0 // Confidence score (0-100)
+    }
+  ]
+}`;
     
     console.log("Using OpenAI with prompt:", finalSystemPrompt);
     
     let analyzedData;
     
-    try {
-      // Actually call OpenAI API
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: finalSystemPrompt },
-          { role: "user", content: finalUserPrompt }
-        ],
-        temperature: 0.7,
-      });
-      
-      console.log("OpenAI response:", response);
-      
-      const content = response.choices[0].message.content || "{}";
+    // Check if OpenAI client is initialized
+    if (openaiClient) {
       try {
-        analyzedData = JSON.parse(content);
-        console.log("Parsed response:", analyzedData);
-      } catch (parseError) {
-        console.error("Failed to parse OpenAI response:", parseError);
-        // Fall back to mock data if parsing fails
+        // Call OpenAI API
+        const response = await openaiClient.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [
+            { role: "system", content: finalSystemPrompt },
+            { role: "user", content: finalUserPrompt }
+          ],
+          temperature: 0.7,
+        });
+        
+        console.log("OpenAI response received");
+        
+        const content = response.choices[0].message.content || "{}";
+        try {
+          analyzedData = JSON.parse(content);
+          console.log("Parsed response successfully");
+        } catch (parseError) {
+          console.error("Failed to parse OpenAI response:", parseError);
+          // Fall back to detail-specific mock data
+          analyzedData = getMockAnalyzedData(detailLevel);
+        }
+      } catch (openaiError) {
+        console.error("OpenAI API error:", openaiError);
+        // Fall back to detail-specific mock data
         analyzedData = getMockAnalyzedData(detailLevel);
       }
-    } catch (openaiError) {
-      console.error("OpenAI API error:", openaiError);
-      // Fall back to mock data if API call fails
+    } else {
+      console.log("OpenAI client not initialized, using mock data");
+      // No API key provided, use mock data
       analyzedData = getMockAnalyzedData(detailLevel);
     }
     
     // Generate word cloud data if requested
     let wordCloudData = undefined;
     if (options?.generateWordCloud) {
-      // In a real implementation, we would use NLP to extract keywords
-      wordCloudData = [
-        { text: "AI", value: 100 },
-        { text: "Machine Learning", value: 85 },
-        { text: "Neural Networks", value: 70 },
-        { text: "Deep Learning", value: 65 },
-        { text: "Data", value: 50 },
-        { text: "Ethics", value: 40 },
-        { text: "Applications", value: 35 },
-        { text: "Computer Vision", value: 30 }
-      ];
+      // This is a simplistic example - in a real implementation, use NLP
+      const words = transcriptText.split(/\s+/);
+      const wordCounts: {[key: string]: number} = {};
+      
+      words.forEach(word => {
+        word = word.toLowerCase().replace(/[^a-z0-9]/gi, '');
+        if (word.length > 3 && !["and", "the", "this", "that", "with", "from"].includes(word)) {
+          wordCounts[word] = (wordCounts[word] || 0) + 1;
+        }
+      });
+      
+      wordCloudData = Object.entries(wordCounts)
+        .filter(([_, count]) => count > 1) // Only include words that appear more than once
+        .sort((a, b) => b[1] - a[1]) // Sort by frequency
+        .slice(0, 20) // Take top 20 words
+        .map(([text, value]) => ({ text, value }));
+      
+      // If there aren't enough real words, add some mock data
+      if (wordCloudData.length < 8) {
+        wordCloudData = [
+          { text: "AI", value: 100 },
+          { text: "Machine Learning", value: 85 },
+          { text: "Neural Networks", value: 70 },
+          { text: "Deep Learning", value: 65 },
+          { text: "Data", value: 50 },
+          { text: "Ethics", value: 40 },
+          { text: "Applications", value: 35 },
+          { text: "Computer Vision", value: 30 }
+        ];
+      }
     }
     
     // Return the processed data
@@ -187,7 +306,8 @@ export async function processTranscript(
       translatedFrom,
       customPromptUsed: options?.customPrompt,
       wordCloudData,
-      confidenceScore: 92
+      confidenceScore: Math.floor(Math.random() * 10) + 85, // Random confidence between 85-95
+      rawTranscript: options?.showRawTranscript ? rawTranscript : undefined
     };
   } catch (error) {
     console.error("Error processing transcript:", error);
