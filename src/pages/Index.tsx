@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { HeroSection } from "@/components/HeroSection";
 import { URLInput } from "@/components/URLInput";
@@ -29,16 +29,28 @@ const Index = () => {
   const [videoId, setVideoId] = useState("");
   const [isCostEstimate, setIsCostEstimate] = useState(false);
   const [apiKey, setApiKey] = useState(() => localStorage.getItem("openai_api_key") || "");
-  const [apiKeyDialogOpen, setApiKeyDialogOpen] = useState(!apiKey);
+  const [apiKeyDialogOpen, setApiKeyDialogOpen] = useState(false);
   const [apiKeyError, setApiKeyError] = useState("");
   const { toast } = useToast();
 
   // Check if API key is valid on component mount
-  useState(() => {
+  useEffect(() => {
     if (apiKey) {
-      setOpenAIApiKey(apiKey);
+      const success = setOpenAIApiKey(apiKey);
+      if (!success) {
+        // If the saved API key is invalid, we'll prompt the user to enter a new one
+        setApiKeyDialogOpen(true);
+        toast({
+          title: "API Key Error",
+          description: "Your saved OpenAI API key appears to be invalid. Please enter a new one.",
+          variant: "destructive"
+        });
+      }
+    } else {
+      // If no API key is saved, show the dialog
+      setApiKeyDialogOpen(true);
     }
-  });
+  }, []);
 
   const handleApiKeySave = () => {
     if (!apiKey.trim()) {
@@ -93,25 +105,34 @@ const Index = () => {
         // Store raw transcript if the option is enabled
         const rawTranscript = options.showRawTranscript ? transcriptData.transcript : undefined;
         
-        const processedData = await processTranscript(
-          vidId, 
-          transcriptData.transcript, 
-          options.detailLevel,
-          options
-        );
-        
-        // Add raw transcript to the result if needed
-        if (rawTranscript) {
-          processedData.rawTranscript = rawTranscript;
+        try {
+          const processedData = await processTranscript(
+            vidId, 
+            transcriptData.transcript, 
+            options.detailLevel,
+            options
+          );
+          
+          // Add raw transcript to the result if needed
+          if (rawTranscript) {
+            processedData.rawTranscript = rawTranscript;
+          }
+          
+          setResult(processedData);
+          
+          // Show toast for successful processing
+          toast({
+            title: "Processing Complete",
+            description: `Transcript analyzed with ${options.detailLevel} detail level`,
+          });
+        } catch (error) {
+          console.error("Error processing transcript:", error);
+          toast({
+            title: "Processing Error",
+            description: "There was an error analyzing the transcript. Please check your API key and try again.",
+            variant: "destructive"
+          });
         }
-        
-        setResult(processedData);
-        
-        // Show toast for successful processing
-        toast({
-          title: "Processing Complete",
-          description: `Transcript analyzed with ${options.detailLevel} detail level`,
-        });
       }
     } catch (error) {
       console.error("Error processing transcript:", error);
@@ -224,12 +245,13 @@ const Index = () => {
             </DialogContent>
           </Dialog>
           
-          {/* Example URLs */}
+          {/* Example URLs - Updated with real examples */}
           <div className="mb-6">
             <h3 className="text-lg font-medium mb-2">Example URLs to try:</h3>
             <div className="space-y-1 text-sm text-muted-foreground">
-              <p>• https://www.youtube.com/watch?v=example1 (English - Climate Change)</p>
-              <p>• https://www.youtube.com/watch?v=example2 (Spanish - AI Technology)</p>
+              <p>• https://www.youtube.com/watch?v=dQw4w9WgXcQ (Rick Astley - Never Gonna Give You Up)</p>
+              <p>• https://www.youtube.com/watch?v=hLS3-RiokIw (AI Technology Explained)</p>
+              <p>• https://www.youtube.com/watch?v=OJ8isyS9dGQ (TED Talk on Human Connection)</p>
             </div>
           </div>
           

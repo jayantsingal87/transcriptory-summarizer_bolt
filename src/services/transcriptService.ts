@@ -39,7 +39,25 @@ export async function fetchTranscript(videoId: string): Promise<any> {
   await new Promise(resolve => setTimeout(resolve, 1500));
   
   // Return different transcripts based on video ID to simulate different content
-  if (videoId.includes("example1")) {
+  if (videoId === "dQw4w9WgXcQ") { // Rick Astley - Never Gonna Give You Up
+    return {
+      success: true,
+      transcript: getRickAstleyTranscript(),
+      language: "English"
+    };
+  } else if (videoId === "hLS3-RiokIw") { // AI Explained
+    return {
+      success: true,
+      transcript: getAIExplainedTranscript(),
+      language: "English"
+    };
+  } else if (videoId === "OJ8isyS9dGQ") { // Ted Talk
+    return {
+      success: true,
+      transcript: getTedTalkTranscript(),
+      language: "English"
+    };
+  } else if (videoId.includes("example1")) {
     return {
       success: true,
       transcript: getExampleTranscript1(),
@@ -58,6 +76,49 @@ export async function fetchTranscript(videoId: string): Promise<any> {
       language: "English"
     };
   }
+}
+
+function getRickAstleyTranscript() {
+  return [
+    { timestamp: "0:00", text: "We're no strangers to love" },
+    { timestamp: "0:04", text: "You know the rules and so do I" },
+    { timestamp: "0:08", text: "A full commitment's what I'm thinking of" },
+    { timestamp: "0:12", text: "You wouldn't get this from any other guy" },
+    { timestamp: "0:16", text: "I just wanna tell you how I'm feeling" },
+    { timestamp: "0:20", text: "Gotta make you understand" },
+    { timestamp: "0:24", text: "Never gonna give you up" },
+    { timestamp: "0:28", text: "Never gonna let you down" },
+    { timestamp: "0:32", text: "Never gonna run around and desert you" },
+    { timestamp: "0:36", text: "Never gonna make you cry" },
+    { timestamp: "0:40", text: "Never gonna say goodbye" },
+    { timestamp: "0:44", text: "Never gonna tell a lie and hurt you" }
+  ];
+}
+
+function getAIExplainedTranscript() {
+  return [
+    { timestamp: "0:00", text: "Today we're going to discuss the future of artificial intelligence." },
+    { timestamp: "0:05", text: "AI has been rapidly evolving in recent years." },
+    { timestamp: "0:10", text: "Large language models have transformed how we interact with technology." },
+    { timestamp: "0:15", text: "GPT and similar models can generate text, translate languages, and answer questions." },
+    { timestamp: "0:20", text: "But they also raise important ethical questions about bias and misinformation." },
+    { timestamp: "0:25", text: "The next generation of AI will likely be more capable and more integrated into daily life." },
+    { timestamp: "0:30", text: "Researchers are working on models that can reason, plan, and solve complex problems." },
+    { timestamp: "0:35", text: "However, these advancements come with risks that need to be addressed." }
+  ];
+}
+
+function getTedTalkTranscript() {
+  return [
+    { timestamp: "0:00", text: "I'd like to talk to you today about the power of human connection." },
+    { timestamp: "0:08", text: "In our increasingly digital world, we sometimes forget the importance of face-to-face interaction." },
+    { timestamp: "0:16", text: "Research shows that meaningful social connections can improve health outcomes." },
+    { timestamp: "0:24", text: "People with strong social ties tend to live longer, healthier lives." },
+    { timestamp: "0:32", text: "But many of us are experiencing a connection deficit." },
+    { timestamp: "0:40", text: "Technology can either help or hinder our connections, depending on how we use it." },
+    { timestamp: "0:48", text: "Small daily interactions, even with strangers, can boost our sense of belonging." },
+    { timestamp: "0:56", text: "I challenge you to disconnect from your devices and connect with someone new today." }
+  ];
 }
 
 function getExampleTranscript() {
@@ -178,7 +239,7 @@ export async function processTranscript(
     // Custom prompt handling
     let customPromptText = "";
     if (options?.customPrompt && options.customPrompt.trim() !== "") {
-      customPromptText = options.customPrompt + "\n\n";
+      customPromptText = `${options.customPrompt}\n\n`;
     }
     
     const finalSystemPrompt = `You are an AI assistant that specializes in analyzing video transcripts and providing structured summaries. ${customPromptText}${detailInstructions}`;
@@ -188,7 +249,7 @@ ${transcriptText}
 
 ${translationPrompt}
 
-Format the response as a JSON with the following structure:
+Format the response as a JSON object with the following structure:
 {
   "title": "Write a descriptive title based on the content",
   "summary": "Comprehensive summary of the content",
@@ -229,12 +290,16 @@ Format the response as a JSON with the following structure:
         
         console.log("OpenAI response received");
         
+        // Get the content from the response
         const content = response.choices[0].message.content || "{}";
+        
         try {
-          analyzedData = JSON.parse(content);
-          console.log("Parsed response successfully");
+          // Sometimes the model returns the JSON with markdown backticks, so we need to clean it
+          const cleanedContent = content.replace(/```json|```/g, '').trim();
+          analyzedData = JSON.parse(cleanedContent);
+          console.log("Parsed response successfully:", analyzedData);
         } catch (parseError) {
-          console.error("Failed to parse OpenAI response:", parseError);
+          console.error("Failed to parse OpenAI response:", parseError, "Response was:", content);
           // Fall back to detail-specific mock data
           analyzedData = getMockAnalyzedData(detailLevel);
         }
