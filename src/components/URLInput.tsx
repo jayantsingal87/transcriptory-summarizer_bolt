@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { extractVideoId, isValidYoutubeUrl } from "@/utils/youtube";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Check, ChevronDown, Globe, MessageSquare, Settings, FileText, Lightbulb, PlaySquare, Play } from "lucide-react";
+import { Check, ChevronDown, Globe, MessageSquare, Settings, FileText, Lightbulb, PlaySquare, Play, Key } from "lucide-react";
 import { ProcessingOptions } from "@/types/transcript";
 import { 
   Command,
@@ -19,7 +19,14 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { isPlaylist } from "@/services/transcriptService";
+import { 
+  isPlaylist,
+  setYoutubeApiKey,
+  getYoutubeApiKey,
+  setOpenAIApiKey,
+  getOpenAIApiKey
+} from "@/services/transcriptService";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 const languages = [
   { value: "", label: "Original" },
@@ -50,7 +57,26 @@ export function URLInput({ onSubmit, isLoading }: URLInputProps) {
   const [generateWordCloud, setGenerateWordCloud] = useState(false);
   const [estimateCost, setEstimateCost] = useState(false);
   const [showRawTranscript, setShowRawTranscript] = useState(false);
+  const [apiKeyDialogOpen, setApiKeyDialogOpen] = useState(false);
+  const [youtubeApiKey, setYoutubeApiKeyState] = useState(() => getYoutubeApiKey() || "");
+  const [openaiApiKey, setOpenaiApiKeyState] = useState(() => getOpenAIApiKey() || "");
   const { toast } = useToast();
+
+  // Initialize API keys from localStorage on mount
+  useEffect(() => {
+    const storedYoutubeKey = localStorage.getItem("youtube_api_key");
+    const storedOpenaiKey = localStorage.getItem("openai_api_key");
+    
+    if (storedYoutubeKey) {
+      setYoutubeApiKeyState(storedYoutubeKey);
+      setYoutubeApiKey(storedYoutubeKey);
+    }
+    
+    if (storedOpenaiKey) {
+      setOpenaiApiKeyState(storedOpenaiKey);
+      setOpenAIApiKey(storedOpenaiKey);
+    }
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,6 +88,27 @@ export function URLInput({ onSubmit, isLoading }: URLInputProps) {
         description: "Please enter a valid YouTube video or playlist URL",
         variant: "destructive",
       });
+      return;
+    }
+
+    // Check if we have API keys
+    if (!youtubeApiKey) {
+      toast({
+        title: "YouTube API Key Missing",
+        description: "Please provide a YouTube API key in the settings",
+        variant: "destructive",
+      });
+      setApiKeyDialogOpen(true);
+      return;
+    }
+
+    if (!openaiApiKey) {
+      toast({
+        title: "OpenAI API Key Missing",
+        description: "Please provide an OpenAI API key in the settings",
+        variant: "destructive",
+      });
+      setApiKeyDialogOpen(true);
       return;
     }
     
@@ -83,6 +130,24 @@ export function URLInput({ onSubmit, isLoading }: URLInputProps) {
   // Function for quick example URLs
   const setExampleUrl = (exampleUrl: string) => {
     setUrl(exampleUrl);
+  };
+
+  // Handle API key changes
+  const handleSaveApiKeys = () => {
+    // Save to service
+    setYoutubeApiKey(youtubeApiKey);
+    setOpenAIApiKey(openaiApiKey);
+    
+    // Save to localStorage
+    localStorage.setItem("youtube_api_key", youtubeApiKey);
+    localStorage.setItem("openai_api_key", openaiApiKey);
+    
+    setApiKeyDialogOpen(false);
+    
+    toast({
+      title: "API Keys Saved",
+      description: "Your API keys have been saved and will be used for processing",
+    });
   };
 
   // Determine if the current URL is a playlist
@@ -198,16 +263,29 @@ export function URLInput({ onSubmit, isLoading }: URLInputProps) {
             </div>
             
             <div className="flex justify-between items-center">
-              <Button 
-                type="button" 
-                variant="outline" 
-                size="sm"
-                onClick={() => setShowOptions(!showOptions)}
-                className="flex items-center gap-1"
-              >
-                <Settings className="h-4 w-4" />
-                {showOptions ? "Hide Options" : "Show Advanced Options"}
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setShowOptions(!showOptions)}
+                  className="flex items-center gap-1"
+                >
+                  <Settings className="h-4 w-4" />
+                  {showOptions ? "Hide Options" : "Show Advanced Options"}
+                </Button>
+                
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setApiKeyDialogOpen(true)}
+                  className="flex items-center gap-1"
+                >
+                  <Key className="h-4 w-4" />
+                  API Keys
+                </Button>
+              </div>
               
               <div className="flex items-center gap-2">
                 <Switch
@@ -360,6 +438,74 @@ export function URLInput({ onSubmit, isLoading }: URLInputProps) {
           </form>
         </CardContent>
       </Card>
+
+      {/* API Keys Dialog */}
+      <Dialog open={apiKeyDialogOpen} onOpenChange={setApiKeyDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>API Keys</DialogTitle>
+            <DialogDescription>
+              Enter your API keys to use with TranscriptLens.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="youtube-api-key" className="flex items-center gap-1">
+                YouTube API Key
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Lightbulb className="h-4 w-4 text-muted-foreground cursor-help ml-1" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs">
+                      Required to fetch video details and transcripts from YouTube
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </Label>
+              <Input
+                id="youtube-api-key"
+                value={youtubeApiKey}
+                onChange={(e) => setYoutubeApiKeyState(e.target.value)}
+                placeholder="Enter YouTube API key"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="openai-api-key" className="flex items-center gap-1">
+                OpenAI API Key
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Lightbulb className="h-4 w-4 text-muted-foreground cursor-help ml-1" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs">
+                      Required for AI analysis of transcripts
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </Label>
+              <Input
+                id="openai-api-key"
+                value={openaiApiKey}
+                onChange={(e) => setOpenaiApiKeyState(e.target.value)}
+                placeholder="Enter OpenAI API key"
+                type="password"
+              />
+            </div>
+          </div>
+          
+          <DialogFooter className="sm:justify-end">
+            <Button variant="outline" onClick={() => setApiKeyDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveApiKeys}>
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </TooltipProvider>
   );
 }
