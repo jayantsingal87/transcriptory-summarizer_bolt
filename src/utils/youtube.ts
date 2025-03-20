@@ -24,7 +24,12 @@ export function isPlaylistUrl(url: string): boolean {
   return url.includes('list=') || url.includes('playlist?');
 }
 
-// Check if it's a valid YouTube URL (video or playlist)
+// Check if URL is for a playlists page (channel playlists tab)
+export function isPlaylistsPageUrl(url: string): boolean {
+  return url.includes('/playlists') || url.includes('tab=playlists');
+}
+
+// Check if it's a valid YouTube URL (video, playlist, or playlists page)
 export function isValidYoutubeUrl(url: string): boolean {
   // Check if it's a video URL
   const isVideo = !!extractVideoId(url);
@@ -32,7 +37,10 @@ export function isValidYoutubeUrl(url: string): boolean {
   // Check if it's a playlist URL
   const isPlaylist = isPlaylistUrl(url);
   
-  return isVideo || isPlaylist;
+  // Check if it's a playlists page URL
+  const isPlaylistsPage = isPlaylistsPageUrl(url);
+  
+  return isVideo || isPlaylist || isPlaylistsPage;
 }
 
 // Format time for display (converts seconds to MM:SS format)

@@ -21,6 +21,28 @@ export function isPlaylist(url: string): boolean {
   return url.includes('list=') || url.includes('playlist?');
 }
 
+// Check if input is a playlists page (a YouTube channel's playlists tab)
+export function isPlaylistsPage(url: string): boolean {
+  return url.includes('/playlists') || url.includes('tab=playlists');
+}
+
+// Extract channel ID from a playlists page URL
+export function extractChannelIdFromPlaylistsPage(url: string): string | null {
+  // Handle format: https://www.youtube.com/@ChannelName/playlists
+  const handleMatch = url.match(/youtube\.com\/@([^\/]+)/);
+  if (handleMatch) return handleMatch[1];
+  
+  // Handle format: https://www.youtube.com/channel/CHANNEL_ID/playlists
+  const channelMatch = url.match(/youtube\.com\/channel\/([^\/]+)/);
+  if (channelMatch) return channelMatch[1];
+  
+  // Handle format: https://www.youtube.com/c/ChannelName/playlists (legacy)
+  const legacyMatch = url.match(/youtube\.com\/c\/([^\/]+)/);
+  if (legacyMatch) return legacyMatch[1];
+  
+  return null;
+}
+
 // Extract playlist ID from URL
 export function extractPlaylistId(url: string): string | null {
   const regex = /[&?]list=([^&]+)/;
@@ -28,8 +50,81 @@ export function extractPlaylistId(url: string): string | null {
   return match ? match[1] : null;
 }
 
+// Fetch playlists from a channel
+export async function fetchChannelPlaylists(channelId: string): Promise<{playlistId: string, title: string, thumbnailUrl: string}[]> {
+  // Make sure we have an API key
+  if (!youtubeApiKey) {
+    console.error("YouTube API key is missing");
+    return getMockChannelPlaylists(channelId);
+  }
+  
+  try {
+    // First, try to get the uploads playlist ID
+    const response = await fetch(
+      `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${channelId}&key=${youtubeApiKey}`
+    );
+    
+    if (!response.ok) {
+      console.error(`YouTube API error: ${response.status}`);
+      return getMockChannelPlaylists(channelId);
+    }
+    
+    // Now fetch the playlists
+    const playlistsResponse = await fetch(
+      `https://www.googleapis.com/youtube/v3/playlists?part=snippet,contentDetails&channelId=${channelId}&maxResults=10&key=${youtubeApiKey}`
+    );
+    
+    if (!playlistsResponse.ok) {
+      console.error(`YouTube API error: ${playlistsResponse.status}`);
+      return getMockChannelPlaylists(channelId);
+    }
+    
+    const data = await playlistsResponse.json();
+    
+    return data.items.map((item: any) => ({
+      playlistId: item.id,
+      title: item.snippet.title,
+      thumbnailUrl: item.snippet.thumbnails.medium?.url || item.snippet.thumbnails.default?.url
+    }));
+  } catch (error) {
+    console.error("Error fetching channel playlists:", error);
+    return getMockChannelPlaylists(channelId);
+  }
+}
+
+// Mock channel playlists
+function getMockChannelPlaylists(channelId: string) {
+  return [
+    { 
+      playlistId: "PL1" + channelId.substring(0, 3),
+      title: "Introduction to Technology",
+      thumbnailUrl: "https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg"
+    },
+    { 
+      playlistId: "PL2" + channelId.substring(0, 3),
+      title: "Machine Learning Series",
+      thumbnailUrl: "https://i.ytimg.com/vi/hLS3-RiokIw/mqdefault.jpg"
+    },
+    { 
+      playlistId: "PL3" + channelId.substring(0, 3),
+      title: "Web Development Tutorials",
+      thumbnailUrl: "https://i.ytimg.com/vi/OJ8isyS9dGQ/mqdefault.jpg"
+    },
+    { 
+      playlistId: "PL4" + channelId.substring(0, 3),
+      title: "Data Science Projects",
+      thumbnailUrl: "https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg"
+    },
+    { 
+      playlistId: "PL5" + channelId.substring(0, 3),
+      title: "Mobile App Development",
+      thumbnailUrl: "https://i.ytimg.com/vi/hLS3-RiokIw/mqdefault.jpg"
+    }
+  ];
+}
+
 // Function to fetch playlist items
-export async function fetchPlaylistItems(playlistId: string): Promise<{videoId: string, title: string}[]> {
+export async function fetchPlaylistItems(playlistId: string): Promise<{videoId: string, title: string, thumbnailUrl: string}[]> {
   // Make sure we have an API key
   if (!youtubeApiKey) {
     console.error("YouTube API key is missing");
@@ -38,7 +133,7 @@ export async function fetchPlaylistItems(playlistId: string): Promise<{videoId: 
   
   try {
     const response = await fetch(
-      `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=5&playlistId=${playlistId}&key=${youtubeApiKey}`
+      `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=15&playlistId=${playlistId}&key=${youtubeApiKey}`
     );
     
     if (!response.ok) {
@@ -49,7 +144,8 @@ export async function fetchPlaylistItems(playlistId: string): Promise<{videoId: 
     const data = await response.json();
     return data.items.map((item: any) => ({
       videoId: item.snippet.resourceId.videoId,
-      title: item.snippet.title
+      title: item.snippet.title,
+      thumbnailUrl: item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.default?.url || ""
     }));
   } catch (error) {
     console.error("Error fetching playlist items:", error);
@@ -60,11 +156,31 @@ export async function fetchPlaylistItems(playlistId: string): Promise<{videoId: 
 // Get mock playlist items (used as fallback)
 function getMockPlaylistItems(playlistId: string) {
   return [
-    { videoId: "example1" + playlistId.substring(0, 3), title: "Introduction to AI" },
-    { videoId: "example2" + playlistId.substring(0, 3), title: "Machine Learning Basics" },
-    { videoId: "dQw4w9WgXcQ", title: "Neural Networks Explained" },
-    { videoId: "hLS3-RiokIw", title: "Deep Learning Applications" },
-    { videoId: "OJ8isyS9dGQ", title: "Ethics in AI Development" }
+    { 
+      videoId: "example1" + playlistId.substring(0, 3), 
+      title: "Introduction to AI", 
+      thumbnailUrl: "https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg" 
+    },
+    { 
+      videoId: "example2" + playlistId.substring(0, 3), 
+      title: "Machine Learning Basics", 
+      thumbnailUrl: "https://i.ytimg.com/vi/hLS3-RiokIw/mqdefault.jpg" 
+    },
+    { 
+      videoId: "dQw4w9WgXcQ", 
+      title: "Neural Networks Explained", 
+      thumbnailUrl: "https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg" 
+    },
+    { 
+      videoId: "hLS3-RiokIw", 
+      title: "Deep Learning Applications", 
+      thumbnailUrl: "https://i.ytimg.com/vi/hLS3-RiokIw/mqdefault.jpg" 
+    },
+    { 
+      videoId: "OJ8isyS9dGQ", 
+      title: "Ethics in AI Development", 
+      thumbnailUrl: "https://i.ytimg.com/vi/OJ8isyS9dGQ/mqdefault.jpg" 
+    }
   ];
 }
 

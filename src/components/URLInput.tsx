@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { extractVideoId, isValidYoutubeUrl } from "@/utils/youtube";
+import { extractVideoId, isValidYoutubeUrl, isPlaylistUrl, isPlaylistsPageUrl } from "@/utils/youtube";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Check, ChevronDown, Globe, MessageSquare, Settings, FileText, Lightbulb, PlaySquare, Play, Key } from "lucide-react";
+import { Check, ChevronDown, Globe, MessageSquare, Settings, FileText, Lightbulb, PlaySquare, Play, Key, Folder } from "lucide-react";
 import { ProcessingOptions } from "@/types/transcript";
 import { 
   Command,
@@ -21,12 +21,14 @@ import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   isPlaylist,
+  isPlaylistsPage,
   setYoutubeApiKey,
   getYoutubeApiKey,
   setOpenAIApiKey,
   getOpenAIApiKey
 } from "@/services/transcriptService";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { motion } from "framer-motion";
 
 const languages = [
   { value: "", label: "Original" },
@@ -85,7 +87,7 @@ export function URLInput({ onSubmit, isLoading }: URLInputProps) {
     if (!isValidYoutubeUrl(url)) {
       toast({
         title: "Invalid YouTube URL",
-        description: "Please enter a valid YouTube video or playlist URL",
+        description: "Please enter a valid YouTube video, playlist, or channel playlists URL",
         variant: "destructive",
       });
       return;
@@ -150,19 +152,49 @@ export function URLInput({ onSubmit, isLoading }: URLInputProps) {
     });
   };
 
-  // Determine if the current URL is a playlist
-  const isPlaylistUrl = url ? isPlaylist(url) : false;
+  // Get icon for URL type
+  const getUrlTypeIcon = () => {
+    if (!url) return null;
+    
+    if (isPlaylistsPageUrl(url)) {
+      return <Folder className="h-5 w-5 text-primary" />;
+    } else if (isPlaylistUrl(url)) {
+      return <Play className="h-5 w-5 text-primary" />;
+    } else {
+      return <PlaySquare className="h-5 w-5 text-primary" />;
+    }
+  };
+
+  // Get action text based on URL type
+  const getActionText = () => {
+    if (isLoading) return "Processing...";
+    if (estimateCost) return "Estimate Processing Cost";
+    
+    if (isPlaylistsPageUrl(url)) {
+      return "Browse Channel Playlists";
+    } else if (isPlaylistUrl(url)) {
+      return "Select Videos from Playlist";
+    } else {
+      return "Analyze Transcript";
+    }
+  };
 
   return (
     <TooltipProvider>
-      <Card className="w-full max-w-xl mx-auto card-gradient border shadow-md">
+      <Card className="w-full max-w-xl mx-auto card-gradient border shadow-md transform transition-all hover:shadow-lg">
         <CardContent className="pt-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <motion.form 
+            onSubmit={handleSubmit} 
+            className="space-y-4"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <Input
                   type="url"
-                  placeholder="Paste YouTube video or playlist URL"
+                  placeholder="Paste YouTube video, playlist, or channel playlists URL"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   className="w-full bg-white/80 dark:bg-gray-900/80 transition-all"
@@ -172,20 +204,27 @@ export function URLInput({ onSubmit, isLoading }: URLInputProps) {
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div className="flex-shrink-0">
-                        {isPlaylistUrl ? (
-                          <Play className="h-5 w-5 text-primary" />
-                        ) : (
-                          <PlaySquare className="h-5 w-5 text-primary" />
-                        )}
+                        {getUrlTypeIcon()}
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>{isPlaylistUrl ? "Playlist URL detected" : "Video URL detected"}</p>
+                      <p>
+                        {isPlaylistsPageUrl(url) 
+                          ? "Channel playlists URL detected" 
+                          : isPlaylistUrl(url) 
+                            ? "Playlist URL detected" 
+                            : "Video URL detected"}
+                      </p>
                     </TooltipContent>
                   </Tooltip>
                 )}
               </div>
-              <div className="flex flex-wrap gap-2 text-xs">
+              <motion.div 
+                className="flex flex-wrap gap-2 text-xs"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
+              >
                 <span className="text-muted-foreground">Examples:</span>
                 <Button 
                   type="button" 
@@ -201,23 +240,28 @@ export function URLInput({ onSubmit, isLoading }: URLInputProps) {
                   variant="link" 
                   size="sm" 
                   className="h-auto p-0 text-xs"
-                  onClick={() => setExampleUrl("https://www.youtube.com/watch?v=hLS3-RiokIw")}
+                  onClick={() => setExampleUrl("https://www.youtube.com/playlist?list=PLFs4vir_WsTwEd-nJgVJCZPNL3HALHHpF")}
                 >
-                  AI Explained
+                  Tech Playlist
                 </Button>
                 <Button 
                   type="button" 
                   variant="link" 
                   size="sm" 
                   className="h-auto p-0 text-xs"
-                  onClick={() => setExampleUrl("https://www.youtube.com/playlist?list=PLFs4vir_WsTwEd-nJgVJCZPNL3HALHHpF")}
+                  onClick={() => setExampleUrl("https://www.youtube.com/@TED/playlists")}
                 >
-                  Tech Playlist
+                  TED Playlists
                 </Button>
-              </div>
+              </motion.div>
             </div>
             
-            <div className="flex flex-wrap gap-2">
+            <motion.div 
+              className="flex flex-wrap gap-2"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+            >
               <div className="text-sm font-medium mb-2 w-full flex items-center gap-2">
                 Detail Level:
                 <Tooltip>
@@ -260,9 +304,14 @@ export function URLInput({ onSubmit, isLoading }: URLInputProps) {
               >
                 Detailed
               </Button>
-            </div>
+            </motion.div>
             
-            <div className="flex justify-between items-center">
+            <motion.div 
+              className="flex justify-between items-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+            >
               <div className="flex gap-2">
                 <Button 
                   type="button" 
@@ -297,10 +346,15 @@ export function URLInput({ onSubmit, isLoading }: URLInputProps) {
                   Estimate cost only
                 </Label>
               </div>
-            </div>
+            </motion.div>
             
             {showOptions && (
-              <div className="space-y-4 p-4 border rounded-md bg-white/50 dark:bg-gray-900/50">
+              <motion.div 
+                className="space-y-4 p-4 border rounded-md bg-white/50 dark:bg-gray-900/50"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                transition={{ duration: 0.3 }}
+              >
                 <div className="space-y-2">
                   <Label htmlFor="customPrompt" className="flex items-center gap-1">
                     <MessageSquare className="h-4 w-4" /> Custom Prompt
@@ -417,25 +471,23 @@ export function URLInput({ onSubmit, isLoading }: URLInputProps) {
                     </Tooltip>
                   </Label>
                 </div>
-              </div>
+              </motion.div>
             )}
             
-            <Button 
-              type="submit" 
-              className="w-full btn-gradient" 
-              disabled={isLoading}
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ duration: 0.2 }}
             >
-              {isLoading 
-                ? isPlaylistUrl 
-                  ? "Processing Playlist..." 
-                  : "Processing..." 
-                : estimateCost 
-                  ? "Estimate Processing Cost" 
-                  : isPlaylistUrl
-                    ? "Analyze Playlist"
-                    : "Analyze Transcript"}
-            </Button>
-          </form>
+              <Button 
+                type="submit" 
+                className="w-full btn-gradient" 
+                disabled={isLoading}
+              >
+                {isLoading ? "Processing..." : getActionText()}
+              </Button>
+            </motion.div>
+          </motion.form>
         </CardContent>
       </Card>
 
@@ -500,7 +552,7 @@ export function URLInput({ onSubmit, isLoading }: URLInputProps) {
             <Button variant="outline" onClick={() => setApiKeyDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSaveApiKeys}>
+            <Button onClick={handleSaveApiKeys} className="btn-gradient">
               Save
             </Button>
           </DialogFooter>
