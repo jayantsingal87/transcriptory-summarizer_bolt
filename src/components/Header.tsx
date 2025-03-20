@@ -1,9 +1,10 @@
 
-import { BookOpen, Menu, X } from "lucide-react";
+import { BookOpen, Menu, X, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AuthStatus } from "@/components/auth/AuthWrapper";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Link } from "react-router-dom";
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -11,14 +12,21 @@ export function Header() {
   return (
     <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
       <div className="container flex h-16 items-center justify-between py-4">
-        <div className="flex items-center gap-2">
+        <motion.div 
+          className="flex items-center gap-2"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+        >
           <motion.div
-            initial={{ rotate: -10 }}
-            animate={{ rotate: 0 }}
+            initial={{ rotate: -10, scale: 0.9 }}
+            animate={{ rotate: 0, scale: 1 }}
             transition={{ duration: 0.5 }}
+            className="bg-gradient-to-r from-brand-500 to-accent1-500 rounded-lg p-1.5 text-white"
           >
-            <BookOpen className="h-6 w-6 text-brand-600" />
+            <BookOpen className="h-5 w-5" />
           </motion.div>
+          
           <motion.span 
             className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-brand-600 to-accent1-600"
             initial={{ opacity: 0, x: -10 }}
@@ -27,7 +35,7 @@ export function Header() {
           >
             TranscriptLens
           </motion.span>
-        </div>
+        </motion.div>
         
         {/* Desktop Navigation */}
         <div className="hidden md:flex md:items-center md:gap-8">
@@ -37,21 +45,29 @@ export function Header() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: 0.2 }}
             >
-              <Button variant="ghost" className="animated-underline">How It Works</Button>
+              <Link to="#features">
+                <Button variant="ghost" className="animated-underline font-medium">Features</Button>
+              </Link>
             </motion.div>
+            
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: 0.3 }}
             >
-              <Button variant="ghost" className="animated-underline">Pricing</Button>
+              <Link to="#pricing">
+                <Button variant="ghost" className="animated-underline font-medium">Pricing</Button>
+              </Link>
             </motion.div>
+            
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: 0.4 }}
             >
-              <Button variant="ghost" className="animated-underline">Examples</Button>
+              <Link to="#examples">
+                <Button variant="ghost" className="animated-underline font-medium">Examples</Button>
+              </Link>
             </motion.div>
           </nav>
           
@@ -88,9 +104,15 @@ export function Header() {
           >
             <div className="container py-4 space-y-4">
               <nav className="flex flex-col gap-2">
-                <Button variant="ghost" className="justify-start">How It Works</Button>
-                <Button variant="ghost" className="justify-start">Pricing</Button>
-                <Button variant="ghost" className="justify-start">Examples</Button>
+                <Link to="#features" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="ghost" className="justify-start w-full">Features</Button>
+                </Link>
+                <Link to="#pricing" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="ghost" className="justify-start w-full">Pricing</Button>
+                </Link>
+                <Link to="#examples" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="ghost" className="justify-start w-full">Examples</Button>
+                </Link>
               </nav>
               
               <div className="pt-2 border-t">
