@@ -48,8 +48,8 @@ export function PlaylistSelector({ playlists, isLoading, onPlaylistSelect }: Pla
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="bg-white/80 dark:bg-gray-900/80"
-          icon={<Search className="h-4 w-4 text-muted-foreground" />}
         />
+        <Search className="h-4 w-4 text-muted-foreground" />
       </div>
       
       {isLoading ? (

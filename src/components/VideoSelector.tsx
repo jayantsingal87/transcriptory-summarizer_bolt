@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Search, ArrowLeft, CheckSquare } from "lucide-react";
+import { Search, ArrowLeft, PlaySquare } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface VideoItem {
@@ -126,8 +126,8 @@ export function VideoSelector({
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="bg-white/80 dark:bg-gray-900/80"
-          icon={<Search className="h-4 w-4 text-muted-foreground" />}
         />
+        <Search className="h-4 w-4 text-muted-foreground" />
       </div>
       
       {isLoading ? (
