@@ -93,3 +93,173 @@
   background: white;
   border-radius: calc(0.5rem - 2px);
 }
+
+/* Mobile-specific styles */
+@media (max-width: 768px) {
+  .hide-on-mobile {
+    display: none;
+  }
+  
+  .mobile-full-width {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  .mobile-stack {
+    flex-direction: column !important;
+  }
+  
+  .mobile-text-center {
+    text-align: center !important;
+  }
+  
+  .mobile-pb {
+    padding-bottom: 2rem !important;
+  }
+  
+  .mobile-compact-padding {
+    padding: 1rem !important;
+  }
+  
+  .mobile-smaller-text {
+    font-size: 0.875rem !important;
+  }
+  
+  .mobile-smaller-heading {
+    font-size: 1.5rem !important;
+  }
+}
+
+/* Guided tour highlight */
+.tour-highlight {
+  position: relative;
+  z-index: 1000;
+  animation: tour-pulse 1.5s infinite;
+  outline: 2px solid var(--brand-color);
+  border-radius: 4px;
+}
+
+@keyframes tour-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(123, 97, 255, 0.4); }
+  50% { box-shadow: 0 0 0 10px rgba(123, 97, 255, 0); }
+}
+
+/* Keyboard shortcuts indicator */
+.key-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 20px;
+  min-width: 20px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+  margin: 0 2px;
+}
+
+/* Markdown content rendering styles */
+.markdown-content h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.markdown-content h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.markdown-content h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.markdown-content p {
+  margin-bottom: 0.75rem;
+}
+
+.markdown-content ul, .markdown-content ol {
+  margin-left: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.markdown-content ul {
+  list-style-type: disc;
+}
+
+.markdown-content ol {
+  list-style-type: decimal;
+}
+
+.markdown-content blockquote {
+  border-left: 3px solid #e2e8f0;
+  padding-left: 1rem;
+  color: #64748b;
+  margin: 1rem 0;
+}
+
+.markdown-content code {
+  font-family: monospace;
+  background-color: #f1f5f9;
+  padding: 0.125rem 0.25rem;
+  border-radius: 3px;
+  font-size: 0.875em;
+}
+
+.markdown-content pre {
+  background-color: #f1f5f9;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
+.markdown-content pre code {
+  background-color: transparent;
+  padding: 0;
+}
+
+/* Print styles for export */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .print-content, .print-content * {
+    visibility: visible;
+  }
+  .print-content {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* React Query dev tools positioning fix for mobile */
+.ReactQueryDevtools {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  z-index: 9999;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+  .ReactQueryDevtools {
+    max-height: 30vh;
+    width: 100%;
+  }
+}
