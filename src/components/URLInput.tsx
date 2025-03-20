@@ -1,48 +1,23 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { extractVideoId, isValidYoutubeUrl, isPlaylistUrl, isPlaylistsPageUrl } from "@/utils/youtube";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Check, ChevronDown, Globe, MessageSquare, Settings, FileText, Lightbulb, PlaySquare, Play, Key, Folder } from "lucide-react";
-import { ProcessingOptions } from "@/types/transcript";
-import { 
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Settings, Key, Folder, PlaySquare, Play } from "lucide-react";
+import { ProcessingOptions } from "@/types/transcript";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { 
-  isPlaylist,
-  isPlaylistsPage,
-  setYoutubeApiKey,
-  getYoutubeApiKey,
-  setOpenAIApiKey,
-  getOpenAIApiKey
-} from "@/services/transcriptService";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { isValidYoutubeUrl, isPlaylistUrl, isPlaylistsPageUrl } from "@/utils/youtube";
+import { getYoutubeApiKey, getOpenAIApiKey } from "@/services/transcriptService";
 import { motion } from "framer-motion";
 
-const languages = [
-  { value: "", label: "Original" },
-  { value: "English", label: "English" },
-  { value: "Spanish", label: "Spanish" },
-  { value: "French", label: "French" },
-  { value: "German", label: "German" },
-  { value: "Italian", label: "Italian" },
-  { value: "Portuguese", label: "Portuguese" },
-  { value: "Russian", label: "Russian" },
-  { value: "Chinese", label: "Chinese" },
-  { value: "Japanese", label: "Japanese" },
-  { value: "Korean", label: "Korean" },
-];
+// Import new components
+import { DetailLevelSelector } from "./url-input/DetailLevelSelector";
+import { AdvancedOptions } from "./url-input/AdvancedOptions";
+import { ApiKeyDialog } from "./url-input/ApiKeyDialog";
+import { ExampleUrls } from "./url-input/ExampleUrls";
 
 interface URLInputProps {
   onSubmit: (url: string, options: ProcessingOptions) => void;
@@ -55,30 +30,11 @@ export function URLInput({ onSubmit, isLoading }: URLInputProps) {
   const [showOptions, setShowOptions] = useState(false);
   const [customPrompt, setCustomPrompt] = useState("");
   const [translateTo, setTranslateTo] = useState("");
-  const [languageOpen, setLanguageOpen] = useState(false);
   const [generateWordCloud, setGenerateWordCloud] = useState(false);
   const [estimateCost, setEstimateCost] = useState(false);
   const [showRawTranscript, setShowRawTranscript] = useState(false);
   const [apiKeyDialogOpen, setApiKeyDialogOpen] = useState(false);
-  const [youtubeApiKey, setYoutubeApiKeyState] = useState(() => getYoutubeApiKey() || "");
-  const [openaiApiKey, setOpenaiApiKeyState] = useState(() => getOpenAIApiKey() || "");
   const { toast } = useToast();
-
-  // Initialize API keys from localStorage on mount
-  useEffect(() => {
-    const storedYoutubeKey = localStorage.getItem("youtube_api_key");
-    const storedOpenaiKey = localStorage.getItem("openai_api_key");
-    
-    if (storedYoutubeKey) {
-      setYoutubeApiKeyState(storedYoutubeKey);
-      setYoutubeApiKey(storedYoutubeKey);
-    }
-    
-    if (storedOpenaiKey) {
-      setOpenaiApiKeyState(storedOpenaiKey);
-      setOpenAIApiKey(storedOpenaiKey);
-    }
-  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,6 +50,9 @@ export function URLInput({ onSubmit, isLoading }: URLInputProps) {
     }
 
     // Check if we have API keys
+    const youtubeApiKey = getYoutubeApiKey();
+    const openaiApiKey = getOpenAIApiKey();
+
     if (!youtubeApiKey) {
       toast({
         title: "YouTube API Key Missing",
@@ -132,24 +91,6 @@ export function URLInput({ onSubmit, isLoading }: URLInputProps) {
   // Function for quick example URLs
   const setExampleUrl = (exampleUrl: string) => {
     setUrl(exampleUrl);
-  };
-
-  // Handle API key changes
-  const handleSaveApiKeys = () => {
-    // Save to service
-    setYoutubeApiKey(youtubeApiKey);
-    setOpenAIApiKey(openaiApiKey);
-    
-    // Save to localStorage
-    localStorage.setItem("youtube_api_key", youtubeApiKey);
-    localStorage.setItem("openai_api_key", openaiApiKey);
-    
-    setApiKeyDialogOpen(false);
-    
-    toast({
-      title: "API Keys Saved",
-      description: "Your API keys have been saved and will be used for processing",
-    });
   };
 
   // Get icon for URL type
@@ -219,92 +160,16 @@ export function URLInput({ onSubmit, isLoading }: URLInputProps) {
                   </Tooltip>
                 )}
               </div>
-              <motion.div 
-                className="flex flex-wrap gap-2 text-xs"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.2 }}
-              >
-                <span className="text-muted-foreground">Examples:</span>
-                <Button 
-                  type="button" 
-                  variant="link" 
-                  size="sm" 
-                  className="h-auto p-0 text-xs"
-                  onClick={() => setExampleUrl("https://www.youtube.com/watch?v=dQw4w9WgXcQ")}
-                >
-                  Rick Astley
-                </Button>
-                <Button 
-                  type="button" 
-                  variant="link" 
-                  size="sm" 
-                  className="h-auto p-0 text-xs"
-                  onClick={() => setExampleUrl("https://www.youtube.com/playlist?list=PLFs4vir_WsTwEd-nJgVJCZPNL3HALHHpF")}
-                >
-                  Tech Playlist
-                </Button>
-                <Button 
-                  type="button" 
-                  variant="link" 
-                  size="sm" 
-                  className="h-auto p-0 text-xs"
-                  onClick={() => setExampleUrl("https://www.youtube.com/@TED/playlists")}
-                >
-                  TED Playlists
-                </Button>
-              </motion.div>
+              
+              {/* Link to examples */}
+              <ExampleUrls setExampleUrl={setExampleUrl} />
             </div>
             
-            <motion.div 
-              className="flex flex-wrap gap-2"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3 }}
-            >
-              <div className="text-sm font-medium mb-2 w-full flex items-center gap-2">
-                Detail Level:
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Lightbulb className="h-4 w-4 text-muted-foreground cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="max-w-xs">
-                      Brief: Concise 2-3 sentence summary<br />
-                      Standard: Balanced overview with key points<br />
-                      Detailed: Comprehensive in-depth analysis
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              <Button
-                type="button"
-                variant={detailLevel === "brief" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setDetailLevel("brief")}
-                className={detailLevel === "brief" ? "btn-gradient" : ""}
-              >
-                Brief
-              </Button>
-              <Button
-                type="button"
-                variant={detailLevel === "standard" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setDetailLevel("standard")}
-                className={detailLevel === "standard" ? "btn-gradient" : ""}
-              >
-                Standard
-              </Button>
-              <Button
-                type="button"
-                variant={detailLevel === "detailed" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setDetailLevel("detailed")}
-                className={detailLevel === "detailed" ? "btn-gradient" : ""}
-              >
-                Detailed
-              </Button>
-            </motion.div>
+            {/* Detail level selector */}
+            <DetailLevelSelector 
+              detailLevel={detailLevel}
+              setDetailLevel={setDetailLevel}
+            />
             
             <motion.div 
               className="flex justify-between items-center"
@@ -348,130 +213,18 @@ export function URLInput({ onSubmit, isLoading }: URLInputProps) {
               </div>
             </motion.div>
             
+            {/* Advanced options */}
             {showOptions && (
-              <motion.div 
-                className="space-y-4 p-4 border rounded-md bg-white/50 dark:bg-gray-900/50"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                transition={{ duration: 0.3 }}
-              >
-                <div className="space-y-2">
-                  <Label htmlFor="customPrompt" className="flex items-center gap-1">
-                    <MessageSquare className="h-4 w-4" /> Custom Prompt
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Lightbulb className="h-4 w-4 text-muted-foreground cursor-help ml-1" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="max-w-xs">
-                          Add specific instructions for the AI, e.g., "Focus on technical terms" or "Explain concepts for beginners"
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </Label>
-                  <Textarea
-                    id="customPrompt"
-                    placeholder="Add your custom instructions to guide the AI analysis..."
-                    value={customPrompt}
-                    onChange={(e) => setCustomPrompt(e.target.value)}
-                    className="resize-none"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="language" className="flex items-center gap-1">
-                    <Globe className="h-4 w-4" /> Translate Results
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Lightbulb className="h-4 w-4 text-muted-foreground cursor-help ml-1" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="max-w-xs">
-                          Translate the analysis into another language (the original transcript remains unchanged)
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </Label>
-                  <Popover open={languageOpen} onOpenChange={setLanguageOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={languageOpen}
-                        className="w-full justify-between"
-                      >
-                        {translateTo
-                          ? languages.find((language) => language.value === translateTo)?.label
-                          : "Select language..."}
-                        <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-0">
-                      <Command>
-                        <CommandInput placeholder="Search language..." />
-                        <CommandEmpty>No language found.</CommandEmpty>
-                        <CommandGroup>
-                          {languages.map((language) => (
-                            <CommandItem
-                              key={language.value}
-                              value={language.value}
-                              onSelect={(currentValue) => {
-                                setTranslateTo(currentValue === translateTo ? "" : currentValue);
-                                setLanguageOpen(false);
-                              }}
-                            >
-                              <Check
-                                className={`mr-2 h-4 w-4 ${
-                                  translateTo === language.value ? "opacity-100" : "opacity-0"
-                                }`}
-                              />
-                              {language.label}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="wordCloud"
-                    checked={generateWordCloud}
-                    onCheckedChange={setGenerateWordCloud}
-                  />
-                  <Label htmlFor="wordCloud" className="flex items-center gap-1">
-                    Generate Word Cloud
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Lightbulb className="h-4 w-4 text-muted-foreground cursor-help ml-1" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Creates a visual representation of the most common words in the transcript</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </Label>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="showRawTranscript"
-                    checked={showRawTranscript}
-                    onCheckedChange={setShowRawTranscript}
-                  />
-                  <Label htmlFor="showRawTranscript" className="flex items-center gap-1">
-                    <FileText className="h-4 w-4" /> Show Raw Transcript
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Lightbulb className="h-4 w-4 text-muted-foreground cursor-help ml-1" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Displays the unprocessed transcript in its original language</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </Label>
-                </div>
-              </motion.div>
+              <AdvancedOptions
+                customPrompt={customPrompt}
+                setCustomPrompt={setCustomPrompt}
+                translateTo={translateTo}
+                setTranslateTo={setTranslateTo}
+                generateWordCloud={generateWordCloud}
+                setGenerateWordCloud={setGenerateWordCloud}
+                showRawTranscript={showRawTranscript}
+                setShowRawTranscript={setShowRawTranscript}
+              />
             )}
             
             <motion.div
@@ -484,7 +237,7 @@ export function URLInput({ onSubmit, isLoading }: URLInputProps) {
                 className="w-full btn-gradient" 
                 disabled={isLoading}
               >
-                {isLoading ? "Processing..." : getActionText()}
+                {getActionText()}
               </Button>
             </motion.div>
           </motion.form>
@@ -492,72 +245,10 @@ export function URLInput({ onSubmit, isLoading }: URLInputProps) {
       </Card>
 
       {/* API Keys Dialog */}
-      <Dialog open={apiKeyDialogOpen} onOpenChange={setApiKeyDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>API Keys</DialogTitle>
-            <DialogDescription>
-              Enter your API keys to use with TranscriptLens.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="youtube-api-key" className="flex items-center gap-1">
-                YouTube API Key
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Lightbulb className="h-4 w-4 text-muted-foreground cursor-help ml-1" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="max-w-xs">
-                      Required to fetch video details and transcripts from YouTube
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </Label>
-              <Input
-                id="youtube-api-key"
-                value={youtubeApiKey}
-                onChange={(e) => setYoutubeApiKeyState(e.target.value)}
-                placeholder="Enter YouTube API key"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="openai-api-key" className="flex items-center gap-1">
-                OpenAI API Key
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Lightbulb className="h-4 w-4 text-muted-foreground cursor-help ml-1" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="max-w-xs">
-                      Required for AI analysis of transcripts
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </Label>
-              <Input
-                id="openai-api-key"
-                value={openaiApiKey}
-                onChange={(e) => setOpenaiApiKeyState(e.target.value)}
-                placeholder="Enter OpenAI API key"
-                type="password"
-              />
-            </div>
-          </div>
-          
-          <DialogFooter className="sm:justify-end">
-            <Button variant="outline" onClick={() => setApiKeyDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSaveApiKeys} className="btn-gradient">
-              Save
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ApiKeyDialog
+        open={apiKeyDialogOpen}
+        onOpenChange={setApiKeyDialogOpen}
+      />
     </TooltipProvider>
   );
 }
