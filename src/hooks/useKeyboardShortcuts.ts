@@ -1,7 +1,7 @@
 
 import { useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
-import { getSinglePreference } from '@/services/preferences/userPreferences';
+import { useUserPreferences } from './useUserPreferences';
 
 type ShortcutAction = () => void;
 
@@ -16,9 +16,10 @@ interface KeyboardShortcut {
 
 export function useKeyboardShortcuts(shortcuts: KeyboardShortcut[]) {
   const { toast } = useToast();
+  const { getPreference } = useUserPreferences();
 
   useEffect(() => {
-    const shortcutsEnabled = getSinglePreference('keyboardShortcuts');
+    const shortcutsEnabled = getPreference('keyboardShortcuts');
     if (!shortcutsEnabled) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -47,9 +48,9 @@ export function useKeyboardShortcuts(shortcuts: KeyboardShortcut[]) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => {
-      window.addEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [shortcuts]);
+  }, [shortcuts, getPreference]);
 }
 
 export function showShortcutsToast() {
