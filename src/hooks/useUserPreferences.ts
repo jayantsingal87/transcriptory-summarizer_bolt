@@ -7,9 +7,9 @@ import {
   setSinglePreference 
 } from '@/services/preferences/userPreferences';
 
-type PreferenceKey = 'detailLevel' | 'language' | 'showRawTranscript' | 'generateWordCloud' | 'colorTheme' | 'keyboardShortcuts' | 'dismissedTours';
+export type PreferenceKey = 'detailLevel' | 'language' | 'showRawTranscript' | 'generateWordCloud' | 'colorTheme' | 'keyboardShortcuts' | 'dismissedTours';
 
-type UserPreferences = {
+export type UserPreferences = {
   detailLevel: 'brief' | 'standard' | 'detailed';
   language: string;
   showRawTranscript: boolean;

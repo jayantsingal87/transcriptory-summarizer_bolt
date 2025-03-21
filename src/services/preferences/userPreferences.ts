@@ -1,17 +1,6 @@
 
 // User preference management service
-
-type PreferenceKey = 'detailLevel' | 'language' | 'showRawTranscript' | 'generateWordCloud' | 'colorTheme' | 'keyboardShortcuts' | 'dismissedTours';
-
-type UserPreferences = {
-  detailLevel: 'brief' | 'standard' | 'detailed';
-  language: string;
-  showRawTranscript: boolean;
-  generateWordCloud: boolean;
-  colorTheme: 'light' | 'dark' | 'system';
-  keyboardShortcuts: boolean;
-  dismissedTours: string[];
-};
+import { PreferenceKey, UserPreferences } from '@/hooks/useUserPreferences';
 
 const DEFAULT_PREFERENCES: UserPreferences = {
   detailLevel: 'standard',

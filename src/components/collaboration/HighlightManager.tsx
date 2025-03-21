@@ -1,5 +1,5 @@
 
-import { useState, useEffect, createContext, useContext, ReactNode } from "react";
+import React, { useState, useEffect, createContext, useContext, ReactNode } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { motion } from "framer-motion";
 
