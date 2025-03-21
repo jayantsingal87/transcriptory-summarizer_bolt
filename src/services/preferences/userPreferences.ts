@@ -1,7 +1,7 @@
 
 // User preference management service
 
-type PreferenceKey = 'detailLevel' | 'language' | 'showRawTranscript' | 'generateWordCloud' | 'colorTheme' | 'keyboardShortcuts';
+type PreferenceKey = 'detailLevel' | 'language' | 'showRawTranscript' | 'generateWordCloud' | 'colorTheme' | 'keyboardShortcuts' | 'dismissedTours';
 
 type UserPreferences = {
   detailLevel: 'brief' | 'standard' | 'detailed';
@@ -10,6 +10,7 @@ type UserPreferences = {
   generateWordCloud: boolean;
   colorTheme: 'light' | 'dark' | 'system';
   keyboardShortcuts: boolean;
+  dismissedTours: string[];
 };
 
 const DEFAULT_PREFERENCES: UserPreferences = {
@@ -19,6 +20,7 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   generateWordCloud: true,
   colorTheme: 'system',
   keyboardShortcuts: true,
+  dismissedTours: [],
 };
 
 export function getUserPreferences(): UserPreferences {

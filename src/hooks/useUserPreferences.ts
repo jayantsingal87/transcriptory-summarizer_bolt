@@ -7,7 +7,7 @@ import {
   setSinglePreference 
 } from '@/services/preferences/userPreferences';
 
-type PreferenceKey = 'detailLevel' | 'language' | 'showRawTranscript' | 'generateWordCloud' | 'colorTheme' | 'keyboardShortcuts';
+type PreferenceKey = 'detailLevel' | 'language' | 'showRawTranscript' | 'generateWordCloud' | 'colorTheme' | 'keyboardShortcuts' | 'dismissedTours';
 
 type UserPreferences = {
   detailLevel: 'brief' | 'standard' | 'detailed';
@@ -16,6 +16,7 @@ type UserPreferences = {
   generateWordCloud: boolean;
   colorTheme: 'light' | 'dark' | 'system';
   keyboardShortcuts: boolean;
+  dismissedTours: string[];
 };
 
 export function useUserPreferences() {

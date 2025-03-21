@@ -14,6 +14,7 @@ import { CommentsPanel } from "@/components/collaboration/CommentsPanel";
 import { TranscriptResult } from "@/types/transcript";
 import { getMockAnalyzedData } from "@/services/transcriptService";
 import { HighlightProvider, HighlightControls } from "@/components/collaboration/HighlightManager";
+import { useKeyboardShortcuts, showShortcutsToast } from "@/hooks/useKeyboardShortcuts";
 
 interface SharedAnalysisProps {
   embed?: boolean;
@@ -26,12 +27,23 @@ export default function SharedAnalysis({ embed = false }: SharedAnalysisProps) {
   const [result, setResult] = useState<TranscriptResult | null>(null);
   const [showComments, setShowComments] = useState(false);
 
+  // Set up keyboard shortcuts
+  useKeyboardShortcuts([
+    {
+      key: "?",
+      description: "Show keyboard shortcuts",
+      action: showShortcutsToast
+    }
+  ]);
+
   useEffect(() => {
     // In a real app, this would fetch the shared analysis from an API
     // For demo purposes, we'll use mock data
     setTimeout(() => {
-      const mockResult = getMockAnalyzedData('dQw4w9WgXcQ');
-      setResult(mockResult);
+      if (shareId) {
+        const mockResult = getMockAnalyzedData(shareId);
+        setResult(mockResult);
+      }
       setLoading(false);
     }, 1000);
   }, [shareId]);

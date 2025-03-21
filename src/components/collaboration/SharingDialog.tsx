@@ -20,6 +20,13 @@ interface SharingDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+interface ShareResult {
+  success: boolean;
+  shareId?: string;
+  shareUrl?: string;
+  error?: string;
+}
+
 export function SharingDialog({ result, open, onOpenChange }: SharingDialogProps) {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<SharingMethod>("email");
@@ -47,11 +54,11 @@ export function SharingDialog({ result, open, onOpenChange }: SharingDialogProps
         allowEditing: allowEdits
       };
       
-      const result = await shareAnalysis(result, activeTab, options);
+      const shareResult: ShareResult = await shareAnalysis(result, activeTab, options);
       
-      if (result.success && result.shareUrl) {
-        setShareUrl(result.shareUrl);
-        setEmbedCode(generateEmbedCode(result.shareId!));
+      if (shareResult.success && shareResult.shareUrl) {
+        setShareUrl(shareResult.shareUrl);
+        setEmbedCode(generateEmbedCode(shareResult.shareId!));
         
         if (activeTab === "email") {
           toast({
@@ -63,7 +70,7 @@ export function SharingDialog({ result, open, onOpenChange }: SharingDialogProps
           setTimeout(() => onOpenChange(false), 1500);
         }
       } else {
-        setError(result.error || "Failed to share analysis");
+        setError(shareResult.error || "Failed to share analysis");
       }
     } catch (err) {
       setError("An unexpected error occurred");

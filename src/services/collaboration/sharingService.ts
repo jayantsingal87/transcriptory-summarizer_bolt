@@ -12,11 +12,18 @@ interface SharingOptions {
   allowEditing?: boolean;
 }
 
+export interface ShareResult {
+  success: boolean;
+  shareId?: string;
+  shareUrl?: string;
+  error?: string;
+}
+
 export async function shareAnalysis(
   result: TranscriptResult, 
   method: SharingMethod,
   options: SharingOptions
-): Promise<{ success: boolean; shareId?: string; shareUrl?: string; error?: string }> {
+): Promise<ShareResult> {
   try {
     // In a real implementation, this would call an API to share the content
     // For now, we'll simulate the process

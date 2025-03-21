@@ -1,4 +1,3 @@
-
 import { useState, useEffect, createContext, useContext, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -106,7 +105,7 @@ export function TourProvider({ children }: { children: ReactNode }) {
   const startTour = (tourId: string, customSteps?: TourStep[]) => {
     // Check if user has dismissed this tour before
     const dismissedTours = getSinglePreference('dismissedTours') || [];
-    if (dismissedTours.includes(tourId)) return;
+    if (Array.isArray(dismissedTours) && dismissedTours.includes(tourId)) return;
     
     const tourSteps = customSteps || (TOURS as any)[tourId];
     if (!tourSteps) {
@@ -129,7 +128,8 @@ export function TourProvider({ children }: { children: ReactNode }) {
     if (dismiss && currentTour) {
       // Save that user has dismissed this tour
       const dismissedTours = getSinglePreference('dismissedTours') || [];
-      setSinglePreference('dismissedTours', [...dismissedTours, currentTour]);
+      const updatedDismissedTours = Array.isArray(dismissedTours) ? [...dismissedTours, currentTour] : [currentTour];
+      setSinglePreference('dismissedTours', updatedDismissedTours);
     }
     
     setCurrentTour(null);
