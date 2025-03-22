@@ -10,7 +10,8 @@ import { CommentsPanel } from "@/components/collaboration/CommentsPanel";
 import { VersionHistory } from "@/components/collaboration/VersionHistory";
 import { HighlightProvider, HighlightControls } from "@/components/collaboration/HighlightManager";
 import { TourButton } from "@/components/ui/guided-tour";
-import { useKeyboardShortcuts, showShortcutsToast } from "@/hooks/useKeyboardShortcuts";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { showShortcutsToast } from "@/utils/toastUtils";
 
 interface ResultsViewProps {
   isLoading: boolean;

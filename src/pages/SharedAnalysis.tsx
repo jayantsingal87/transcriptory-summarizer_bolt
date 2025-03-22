@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -41,8 +42,10 @@ export default function SharedAnalysis({ embed = false }: SharedAnalysisProps) {
     // For demo purposes, we'll use mock data
     setTimeout(() => {
       if (shareId) {
-        const mockResult = getMockAnalyzedData(shareId);
-        setResult(mockResult);
+        const mockData = getMockAnalyzedData(shareId);
+        if (mockData) {
+          setResult(mockData);
+        }
       }
       setLoading(false);
     }, 1000);
