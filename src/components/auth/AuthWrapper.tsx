@@ -1,29 +1,16 @@
 
 import { ReactNode } from "react";
-import { ClerkProvider, SignedIn, SignedOut, SignInButton, UserButton, useAuth } from "@clerk/clerk-react";
+import { SignedIn, SignedOut, SignInButton, UserButton, useAuth } from "@clerk/clerk-react";
 import { Button } from "@/components/ui/button";
 import { LogIn, BarChart, FileText, Star, User } from "lucide-react";
 import { motion } from "framer-motion";
-
-// This is a public key and can safely be in the codebase
-const CLERK_PUBLISHABLE_KEY = "pk_test_ZnVuZGFtZW50YWwtc2NvcnBpb24tNjkuY2xlcmsuYWNjb3VudHMuZGV2JA";
 
 interface AuthWrapperProps {
   children: ReactNode;
 }
 
 export function AuthWrapper({ children }: AuthWrapperProps) {
-  return (
-    <ClerkProvider 
-      publishableKey={CLERK_PUBLISHABLE_KEY}
-      signInUrl="/sign-in"
-      signUpUrl="/sign-up"
-      afterSignInUrl="/"
-      afterSignUpUrl="/"
-    >
-      {children}
-    </ClerkProvider>
-  );
+  return <>{children}</>;
 }
 
 export function AuthStatus() {

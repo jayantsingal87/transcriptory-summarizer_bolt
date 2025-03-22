@@ -33,7 +33,7 @@ export default function SharedAnalysis({ embed = false }: SharedAnalysisProps) {
     {
       key: "?",
       description: "Show keyboard shortcuts",
-      action: showShortcutsToast
+      action: () => showShortcutsToast()
     }
   ]);
 
@@ -102,7 +102,7 @@ export default function SharedAnalysis({ embed = false }: SharedAnalysisProps) {
   }
 
   return (
-    <HighlightProvider videoId={result.videoId}>
+    <HighlightProvider videoId={result?.videoId || ""}>
       <div className={`min-h-screen bg-gradient-to-b from-white to-gray-50 ${embed ? 'p-2' : ''}`}>
         {!embed && <Header />}
         
@@ -134,19 +134,21 @@ export default function SharedAnalysis({ embed = false }: SharedAnalysisProps) {
           
           <div className={`grid ${showComments ? 'grid-cols-1 lg:grid-cols-3 gap-6' : 'grid-cols-1'}`}>
             <div className={showComments ? "lg:col-span-2" : ""}>
-              <ResultsDisplay 
-                result={result} 
-                videoId={result.videoId} 
-                onExport={() => {
-                  toast({
-                    title: "Export not available",
-                    description: "Exporting is not available for shared analyses",
-                  });
-                }}
-              />
+              {result && (
+                <ResultsDisplay 
+                  result={result} 
+                  videoId={result.videoId} 
+                  onExport={() => {
+                    toast({
+                      title: "Export not available",
+                      description: "Exporting is not available for shared analyses",
+                    });
+                  }}
+                />
+              )}
             </div>
             
-            {showComments && (
+            {showComments && result && (
               <div className="lg:col-span-1">
                 <CommentsPanel videoId={result.videoId} />
               </div>
