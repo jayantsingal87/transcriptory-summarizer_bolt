@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -14,7 +13,8 @@ import { CommentsPanel } from "@/components/collaboration/CommentsPanel";
 import { TranscriptResult } from "@/types/transcript";
 import { getMockAnalyzedData } from "@/services/transcriptService";
 import { HighlightProvider, HighlightControls } from "@/components/collaboration/HighlightManager";
-import { useKeyboardShortcuts, showShortcutsToast } from "@/hooks/useKeyboardShortcuts";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { showShortcutsToast } from "@/utils/toastUtils";
 
 interface SharedAnalysisProps {
   embed?: boolean;

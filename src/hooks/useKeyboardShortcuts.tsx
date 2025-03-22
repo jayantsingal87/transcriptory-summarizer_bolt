@@ -53,32 +53,44 @@ export function useKeyboardShortcuts(shortcuts: KeyboardShortcut[]) {
   }, [shortcuts, getPreference]);
 }
 
+// Make this a standalone function that doesn't depend on React hooks directly
 export function showShortcutsToast() {
-  const { toast } = useToast();
-  
-  toast({
-    title: "Keyboard Shortcuts",
-    description: (
-      <div className="grid grid-cols-2 gap-2 mt-2">
-        <div className="text-sm">
-          <strong>s</strong>: Start new analysis
+  // Create a temporary element to use the toast
+  const toastContainer = document.createElement('div');
+  document.body.appendChild(toastContainer);
+
+  import('@/components/ui/use-toast').then(({ useToast }) => {
+    const { toast } = useToast();
+    
+    toast({
+      title: "Keyboard Shortcuts",
+      description: (
+        <div className="grid grid-cols-2 gap-2 mt-2">
+          <div className="text-sm">
+            <strong>s</strong>: Start new analysis
+          </div>
+          <div className="text-sm">
+            <strong>e</strong>: Export results
+          </div>
+          <div className="text-sm">
+            <strong>c</strong>: Copy summary
+          </div>
+          <div className="text-sm">
+            <strong>h</strong>: Toggle highlight mode
+          </div>
+          <div className="text-sm">
+            <strong>?</strong>: Show all shortcuts
+          </div>
+          <div className="text-sm">
+            <strong>1-5</strong>: Switch tabs
+          </div>
         </div>
-        <div className="text-sm">
-          <strong>e</strong>: Export results
-        </div>
-        <div className="text-sm">
-          <strong>c</strong>: Copy summary
-        </div>
-        <div className="text-sm">
-          <strong>h</strong>: Toggle highlight mode
-        </div>
-        <div className="text-sm">
-          <strong>?</strong>: Show all shortcuts
-        </div>
-        <div className="text-sm">
-          <strong>1-5</strong>: Switch tabs
-        </div>
-      </div>
-    ),
+      ),
+    });
+    
+    // Clean up after showing toast
+    setTimeout(() => {
+      document.body.removeChild(toastContainer);
+    }, 100);
   });
 }
