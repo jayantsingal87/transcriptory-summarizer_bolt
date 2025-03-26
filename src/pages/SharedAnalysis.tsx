@@ -12,7 +12,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { CommentsPanel } from "@/components/collaboration/CommentsPanel";
 import { TranscriptResult } from "@/types/transcript";
-import { getMockAnalyzedData } from "@/services/transcriptService";
+import { getMockAnalyzedData } from "@/services/mockData/transcriptAnalysis";
 import { HighlightProvider, HighlightControls } from "@/components/collaboration/HighlightManager";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { showShortcutsToast } from "@/utils/toastUtils";
@@ -102,7 +102,7 @@ export default function SharedAnalysis({ embed = false }: SharedAnalysisProps) {
   }
 
   return (
-    <HighlightProvider videoId={result?.videoId || ""}>
+    <HighlightProvider videoId={result.videoId}>
       <div className={`min-h-screen bg-gradient-to-b from-white to-gray-50 ${embed ? 'p-2' : ''}`}>
         {!embed && <Header />}
         
@@ -134,21 +134,19 @@ export default function SharedAnalysis({ embed = false }: SharedAnalysisProps) {
           
           <div className={`grid ${showComments ? 'grid-cols-1 lg:grid-cols-3 gap-6' : 'grid-cols-1'}`}>
             <div className={showComments ? "lg:col-span-2" : ""}>
-              {result && (
-                <ResultsDisplay 
-                  result={result} 
-                  videoId={result.videoId} 
-                  onExport={() => {
-                    toast({
-                      title: "Export not available",
-                      description: "Exporting is not available for shared analyses",
-                    });
-                  }}
-                />
-              )}
+              <ResultsDisplay 
+                result={result} 
+                videoId={result.videoId} 
+                onExport={() => {
+                  toast({
+                    title: "Export not available",
+                    description: "Exporting is not available for shared analyses",
+                  });
+                }}
+              />
             </div>
             
-            {showComments && result && (
+            {showComments && (
               <div className="lg:col-span-1">
                 <CommentsPanel videoId={result.videoId} />
               </div>
