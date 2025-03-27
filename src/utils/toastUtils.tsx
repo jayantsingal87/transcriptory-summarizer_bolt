@@ -1,16 +1,11 @@
 
 import React from "react";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { Keyboard } from "lucide-react";
 
 export const showShortcutsToast = () => {
   toast({
-    title: (
-      <div className="flex items-center gap-2">
-        <Keyboard className="h-5 w-5" />
-        <span>Keyboard Shortcuts</span>
-      </div>
-    ),
+    title: "Keyboard Shortcuts",
     description: (
       <div className="mt-2 grid grid-cols-2 gap-2">
         <div>

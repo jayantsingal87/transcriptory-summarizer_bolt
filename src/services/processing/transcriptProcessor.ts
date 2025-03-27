@@ -150,23 +150,23 @@ Format the response as a JSON object with the following structure:
               console.log("Extracted and parsed JSON using regex:", analyzedData);
             } catch (secondParseError) {
               console.error("Second parse attempt failed:", secondParseError);
-              // Fall back to detail-specific mock data
-              analyzedData = getMockAnalyzedData(detailLevel, videoId);
+              // Fall back to mock data
+              analyzedData = getMockAnalyzedData(videoId);
             }
           } else {
-            // Fall back to detail-specific mock data
-            analyzedData = getMockAnalyzedData(detailLevel, videoId);
+            // Fall back to mock data
+            analyzedData = getMockAnalyzedData(videoId);
           }
         }
       } catch (openaiError) {
         console.error("OpenAI API error:", openaiError);
-        // Fall back to detail-specific mock data
-        analyzedData = getMockAnalyzedData(detailLevel, videoId);
+        // Fall back to mock data
+        analyzedData = getMockAnalyzedData(videoId);
       }
     } else {
       console.log("OpenAI client not initialized, using mock data");
       // No API key provided, use mock data
-      analyzedData = getMockAnalyzedData(detailLevel, videoId);
+      analyzedData = getMockAnalyzedData(videoId);
     }
     
     // Generate word cloud data if requested
