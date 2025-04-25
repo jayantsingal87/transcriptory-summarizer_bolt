@@ -10,7 +10,7 @@ const CLERK_PUBLISHABLE_KEY = "pk_test_ZnVuZGFtZW50YWwtc2NvcnBpb24tNjkuY2xlcmsuY
 createRoot(document.getElementById("root")!).render(
   <ClerkProvider 
     publishableKey={CLERK_PUBLISHABLE_KEY}
-    fallbackRedirectUrl="/"
+    signInFallbackRedirectUrl="/"
     signInUrl="/sign-in"
     signUpUrl="/sign-up"
   >
